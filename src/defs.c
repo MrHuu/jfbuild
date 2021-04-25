@@ -462,6 +462,7 @@ static int defsparser(scriptfile *script)
 				break;
 			case T_DEFINEVOXELTILES:
 				{
+#ifndef __AMIGA__
 					int ftilenume, ltilenume, tilex;
 
 					if (scriptfile_getnumber(script,&ftilenume)) break; //1st tile #
@@ -488,6 +489,7 @@ static int defsparser(scriptfile *script)
 					for (tilex = ftilenume; tilex <= ltilenume; tilex++) {
 						tiletovox[tilex] = lastvoxid;
 					}
+#endif
 				}
 				break;
 
@@ -735,6 +737,7 @@ static int defsparser(scriptfile *script)
 				break;
 			case T_VOXEL:
 				{
+#ifndef __AMIGA__
 					char *voxeltokptr = script->ltextptr;
 					char *fn, *modelend;
 					int tile0 = MAXTILES, tile1 = -1, tilex = -1;
@@ -775,6 +778,7 @@ static int defsparser(scriptfile *script)
 						}
 					}
 					lastvoxid = -1;
+#endif
 				}
 				break;
 			case T_SKYBOX:

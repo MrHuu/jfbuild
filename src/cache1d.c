@@ -5,7 +5,9 @@
 // This file has been modified from Ken Silverman's original release
 // by Jonathon Fowler (jf@jonof.id.au)
 
+#ifndef __AMIGA__
 #define WITHKPLIB
+#endif
 
 #include "build.h"
 #include "cache1d.h"
@@ -318,7 +320,11 @@ int findfrompath(const char *fn, char **where)
 	pfn = (char *)malloc(allocsiz);
 	if (!pfn) { free(ffn); return -1; }
 
+#if defined __AMIGA__ || defined __AROS__
+	*pfn = '\0';
+#else
 	strcpy(pfn, "./");
+#endif
 	strcat(pfn, ffn);
 	if (access(pfn, F_OK) >= 0) {
 		*where = pfn;
@@ -359,6 +365,12 @@ BFILE* fopenfrompath(const char *fn, const char *mode)
 	int bmode = 0, smode = 0;
 	const char *c;
 
+#ifdef __AMIGA__
+	char *pfn;
+	if (findfrompath(fn, &pfn) < 0) return NULL;
+	h = fopen(pfn, mode);
+	free(pfn);
+#else
 	for (c=mode; c[0]; ) {
 			 if (c[0] == 'r' && c[1] == '+') { bmode = BO_RDWR; smode = BS_IREAD|BS_IWRITE; c+=2; }
 		else if (c[0] == 'r')                { bmode = BO_RDONLY; smode = BS_IREAD; c+=1; }
@@ -375,6 +387,7 @@ BFILE* fopenfrompath(const char *fn, const char *mode)
 	
 	h = fdopen(fh,mode);
 	if (!h) close(fh);
+#endif
 
 	return h;
 }
@@ -892,7 +905,11 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 		searchpath_t *search = NULL;
 		BDIR *dir;
 		struct Bdirent *dirent;
+#ifdef __AMIGA__
+		const char *d = "";
+#else
 		const char *d = ".";
+#endif
 		int stackdepth = CACHE1D_SOURCE_CURDIR;
 		char buf[BMAX_PATH];
 

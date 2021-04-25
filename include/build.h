@@ -43,9 +43,15 @@ extern "C" {
 #define MAXSPRITESV5 4096
 #define MAXTILESV5   4096
 
+#ifdef __AMIGA__
+#define MAXSECTORS MAXSECTORSV7
+#define MAXWALLS MAXWALLSV7
+#define MAXSPRITES MAXSPRITESV7
+#else
 #define MAXSECTORS MAXSECTORSV8
 #define MAXWALLS MAXWALLSV8
 #define MAXSPRITES MAXSPRITESV8
+#endif
 
 #define MAXTILES 9216
 #define MAXVOXELS 4096
@@ -57,6 +63,17 @@ extern "C" {
 #define MAXPSKYTILES 256
 #define MAXSPRITESONSCREEN 1024
 #define MAXUNIQHUDID 256 //Extra slots so HUD models can store animation state without messing game sprites
+
+#ifdef ENGINE_19950829
+#undef MAXSECTORS
+#define MAXSECTORS MAXSECTORSV6
+#undef MAXWALLS
+#define MAXWALLS MAXWALLSV6
+#undef MAXSPRITES
+#define MAXSPRITES MAXSPRITESV6
+#undef MAXTILES
+#define MAXTILES MAXTILESV6
+#endif
 
 #define CLIPMASK0 (((1L)<<16)+1L)
 #define CLIPMASK1 (((256L)<<16)+64L)
@@ -116,7 +133,14 @@ typedef struct
 	signed char floorshade;
 	unsigned char floorpal, floorxpanning, floorypanning;
 	unsigned char visibility, filler;
+#ifdef ENGINE_19960925
+	union {
+		short lotag, type;
+	};
+	short hitag, extra;
+#else
 	short lotag, hitag, extra;
+#endif
 } sectortype;
 
 //cstat:
@@ -140,7 +164,14 @@ typedef struct
 	short picnum, overpicnum;
 	signed char shade;
 	unsigned char pal, xrepeat, yrepeat, xpanning, ypanning;
+#ifdef ENGINE_19960925
+	union {
+		short lotag, type;
+	};
+	short hitag, extra;
+#else
 	short lotag, hitag, extra;
+#endif
 } walltype;
 
 //cstat:
@@ -168,8 +199,26 @@ typedef struct
 	unsigned char xrepeat, yrepeat;
 	signed char xoffset, yoffset;
 	short sectnum, statnum;
+#ifdef ENGINE_19960925
+	short ang, owner;
+	union {
+		short xvel, index;
+	};
+	short yvel;
+	union {
+		short zvel, inittype;
+	};
+	union {
+		short lotag, type;
+	};
+	union {
+		short hitag, flags;
+	};
+	short extra;
+#else
 	short ang, owner, xvel, yvel, zvel;
 	short lotag, hitag, extra;
+#endif
 } spritetype;
 
 	// 12 bytes
@@ -186,7 +235,9 @@ typedef struct {
 EXTERN sectortype sector[MAXSECTORS];
 EXTERN walltype wall[MAXWALLS];
 EXTERN spritetype sprite[MAXSPRITES];
+#ifndef __AMIGA__
 EXTERN spriteexttype spriteext[MAXSPRITES+MAXUNIQHUDID];
+#endif
 EXTERN int guniqhudid;
 
 EXTERN int spritesortcnt;

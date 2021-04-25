@@ -251,6 +251,9 @@ int app_main(int argc, char const * const argv[])
 #ifdef RENDERTYPEWIN
 	backgroundidle = 1;
 #endif
+#ifdef __AMIGA__
+	fullscreen = 1;
+#endif
 
 	editstatus = 1;
 	boardfilename[0] = 0;
@@ -5232,9 +5235,11 @@ void overheadeditor(void)
 												//tsprite[m].picnum = MAXSECTORS-highlightsectorcnt+j;
 												//tsprite[m].owner = sprite[i].statnum;
 
+#ifndef __AMIGA__
 												// JBF: I see your hack and raise you another
 												spriteext[m].mdanimcur = MAXSECTORS-highlightsectorcnt+j;
 												spriteext[m].angoff = sprite[i].statnum;
+#endif
 
 												break;
 											}
@@ -5294,10 +5299,12 @@ void overheadeditor(void)
 										//sprite[j].sectnum = tsprite[m].picnum+(numsectors-MAXSECTORS);
 										//sprite[j].statnum = tsprite[m].owner;
 
+#ifndef __AMIGA__
 										// JBF: I see your hack and raise you another
 										sprite[j].sectnum = spriteext[m].mdanimcur+(numsectors-MAXSECTORS);
 										sprite[j].statnum = spriteext[m].angoff;
 										spriteext[m].mdanimcur = spriteext[m].angoff = 0;
+#endif
 
 										m++;
 									}

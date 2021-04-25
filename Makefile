@@ -83,7 +83,7 @@ ENGINEOBJS+= \
 	$(SRC)/defs.$o \
 	$(SRC)/engine.$o \
 	$(SRC)/kplib.$o \
-	$(SRC)/mmulti.$o \
+	$(SRC)/mmulti_null.$o \
 	$(SRC)/osd.$o \
 	$(SRC)/pragmas.$o \
 	$(SRC)/scriptfile.$o \
@@ -172,6 +172,10 @@ ifeq ($(RENDERTYPE),WIN)
 	EDITOROBJS+= $(SRC)/startwin_editor.$o
 	GAMEEXEOBJS+= $(GAME)/kdmsound_stub.$o $(GAME)/gameres.$(res) $(GAME)/startwin_game.$o
 	EDITOREXEOBJS+= $(GAME)/buildres.$(res)
+endif
+ifeq ($(RENDERTYPE),AMIGA)
+	ENGINEOBJS+= $(SRC)/amilayer.$o
+	ENGINEOBJS+= $(SRC)/c2p1x1_8_c5_bm.o $(SRC)/c2p1x1_8_c5_bm_040.o $(SRC)/pragmas_68k.o $(SRC)/a_68k.o
 endif
 
 ifneq (0,$(EFENCE))

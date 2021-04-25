@@ -39,7 +39,9 @@ void *kmalloc(bsize_t size) { return(Bmalloc(size)); }
 void kfree(void *buffer) { Bfree(buffer); }
 
 void loadvoxel(int voxindex) { voxindex=0; }
+#ifndef __AMIGA__
 int tiletovox[MAXTILES];
+#endif
 int usevoxels = 1;
 #define kloadvoxel loadvoxel
 
@@ -50,13 +52,17 @@ int novoxmips = 0;
 #define MAXYSIZ 256
 #define MAXZSIZ 255
 #define MAXVOXMIPS 5
+#ifndef __AMIGA__
 intptr_t voxoff[MAXVOXELS][MAXVOXMIPS];
 unsigned char voxlock[MAXVOXELS][MAXVOXMIPS];
 int voxscale[MAXVOXELS];
+#endif
 
 static int ggxinc[MAXXSIZ+1], ggyinc[MAXXSIZ+1];
+#ifndef __AMIGA__
 static int lowrecip[1024], nytooclose, nytoofar;
 static unsigned int distrecip[65536];
+#endif
 
 static int *lookups = NULL;
 int dommxoverlay = 1, beforedrawrooms = 1;
@@ -89,7 +95,14 @@ int artsize = 0, cachesize = 0;
 int editorgridextent = 131072;
 
 static short radarang[1280], radarang2[MAXXDIM];
+#ifdef __AMIGA__
+unsigned short sqrtable[4096], shlookup[4096+256];
+#else
 static unsigned short sqrtable[4096], shlookup[4096+256];
+#endif
+#ifdef ENGINE_19950829
+static unsigned short sqrtable_old[2048];
+#endif
 unsigned char pow2char[8] = {1,2,4,8,16,32,64,128};
 int pow2long[32] =
 {
@@ -364,6 +377,15 @@ static inline int getclipmask(int a, int b, int c, int d)
 		: "=a" (__a), "=b" (__b), "=c" (__c), "=d" (__d) \
 		: "a" (__a), "b" (__b), "c" (__c), "d" (__d) : "cc"); \
 	 __a; })
+
+#elif defined(__AMIGA__)
+
+#include <SDI_compiler.h>
+
+extern int ASM nsqrtasm(REG(d0,unsigned int));
+extern int ASM krecipasm(REG(d0,int));
+extern int ASM getclipmask(REG(d0,int),REG(d1,int),REG(d2,int),REG(d3,int));
+extern int ASM msqrtasm(REG(d0,int b));
 
 #else	// __GNUC__ && __i386__
 
@@ -2723,6 +2745,7 @@ static void drawalls(int bunch)
 //
 // drawvox
 //
+#ifndef __AMIGA__
 static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 		  int daxscale, int dayscale, unsigned char daindex,
 		  signed char dashade, unsigned char dapal, int *daumost, int *dadmost)
@@ -2946,6 +2969,7 @@ static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 
 	enddrawing();	//}}}
 }
+#endif
 
 
 //
@@ -2979,6 +3003,7 @@ static void drawsprite(int snum)
 	spritenum = tspr->owner;
 	cstat = tspr->cstat;
 
+#ifndef __AMIGA__
 	if ((cstat&48)==48) vtilenum = tilenum;	// if the game wants voxels, it gets voxels
 	else if ((cstat&48)!=48 && (usevoxels) && (tiletovox[tilenum] != -1)
 #if USE_POLYMOST && USE_OPENGL
@@ -2988,6 +3013,7 @@ static void drawsprite(int snum)
 		vtilenum = tiletovox[tilenum];
 		cstat |= 48;
 	}
+#endif
 
 	if ((cstat&48) != 48)
 	{
@@ -3734,6 +3760,7 @@ static void drawsprite(int snum)
 			//Draw it!
 		ceilspritescan(lx,rx-1);
 	}
+#ifndef __AMIGA__
 	else if ((cstat&48) == 48)
 	{
 		int nxrepeat, nyrepeat;
@@ -3864,6 +3891,7 @@ static void drawsprite(int snum)
 #endif
 		drawvox(tspr->x,tspr->y,tspr->z,i,(int)tspr->xrepeat,(int)tspr->yrepeat,vtilenum,tspr->shade,tspr->pal,lwall,swall);
 	}
+#endif
 
 	if (automapping == 1) show2dsprite[spritenum>>3] |= pow2char[spritenum&7];
 }
@@ -4837,6 +4865,33 @@ static void initksqrt(void)
 		shlookup[i] = (k<<1)+((10-k)<<8);
 		if (i < 256) shlookup[i+4096] = ((k+6)<<1)+((10-(k+6))<<8);
 	}
+
+#ifdef ENGINE_19950829
+    uint32_t root, num;
+    int32_t temp;
+    for(i=0;i<2048;i++)
+    {
+        root = 128;
+        num = i<<20;
+        do
+        {
+            temp = root;
+            root = (root+num/root)>>1;
+        } while((temp-root+1) > 2);
+        temp = root*root-num;
+        while (klabs((int32_t)(temp-2*root+1)) < klabs(temp))
+        {
+            temp += -(2*root)+1;
+            root--;
+        }
+        while (klabs((int32_t)(temp+2*root+1)) < klabs(temp))
+        {
+            temp += 2*root+1;
+            root++;
+        }
+        sqrtable_old[i] = root;
+    }
+#endif
 }
 
 
@@ -4871,9 +4926,11 @@ static void dosetaspect(void)
 			if (j != 0) j = mulscale16((int)radarang[k+1]-(int)radarang[k],j);
 			radarang2[i] = (short)(((int)radarang[k]+j)>>6);
 		}
+#ifndef __AMIGA__
 		for(i=1;i<65536;i++) distrecip[i] = divscale20(xdimen,i);
 		nytooclose = xdimen*2100;
 		nytoofar = 65536*16384-1048576;
+#endif
 	}
 }
 
@@ -4908,6 +4965,7 @@ static int loadtables(void)
     }
 	calcbritable();
 
+#ifndef __AMIGA__
     if (crc32once((unsigned char *)sintable, sizeof(sintable)) != 0xee1e7aba) {
         engineerrstr = "Calculation of sintable yielded unexpected results.";
         return 1;
@@ -4916,6 +4974,7 @@ static int loadtables(void)
         engineerrstr = "Calculation of radarang yielded unexpected results.";
         return 1;
     }
+#endif
 
 	return 0;
 }
@@ -4968,6 +5027,11 @@ static void initfastcolorlookup(int rscale, int gscale, int bscale)
 static int loadpalette(void)
 {
 	int fil = -1, flen, i;
+#ifdef ENGINE_19950829
+	// Auto-detect LameDuke. Its PALETTE.DAT doesn't have a 'numpalookups' 16-bit
+	// int after the base palette, but starts directly with the shade tables.
+	int lamedukep = 0;
+#endif
 
 	if ((fil = kopen4load("palette.dat",0)) < 0) goto badpalette;
 	flen = kfilelength(fil);
@@ -4989,7 +5053,11 @@ static int loadpalette(void)
 		numpalookups = (flen - 32640 - 768) >> 8;
 		buildprintf("loadpalette: old format palette (%d shades)\n",
 			numpalookups);
+#ifdef ENGINE_19950829
+		lamedukep = 1;
+#else
 		goto badpalette;
+#endif
 	} else {
 		buildprintf("loadpalette: damaged palette\n");
 		goto badpalette;
@@ -5012,6 +5080,28 @@ static int loadpalette(void)
 	fixtransluscence(transluc);
 
 	kread(fil,palookup[globalpal],numpalookups<<8);
+#ifdef ENGINE_19950829
+	if (lamedukep)
+	{
+		int i, j;
+		for (i=0; i<255; i++)
+		{
+			// NOTE: LameDuke's table doesn't have the last row or column (i==255).
+
+			// Read the entries above and on the diagonal, if the table is
+			// thought as being row-major.
+			if (kread(fil, &transluc[256*i + i + 1], 255-i) != 255-i)
+				goto badpalette;
+
+			// Duplicate the entries below the diagonal.
+			for (j=i+1; j<256; j++)
+				transluc[256*j + i] = transluc[256*i + j];
+		}
+		for (i=0; i<256; i++)
+			transluc[256*i + i] = i;
+	}
+	else
+#endif
 	kread(fil,transluc,65536);
 	kclose(fil);
 
@@ -5307,7 +5397,7 @@ static int raytrace(int x3, int y3, int *x4, int *y4)
 // Exported Engine Functions
 //
 
-#if !defined _WIN32 && defined DEBUGGINGAIDS
+#if !defined _WIN32 && defined DEBUGGINGAIDS && !defined __AMIGA__
 #include <signal.h>
 static void sighandler(int sig, siginfo_t *info, void *ctx)
 {
@@ -5363,8 +5453,10 @@ int preinitengine(void)
 	assert((intptr_t)&wall[1] - (intptr_t)&wall[0] == sizeof(walltype));
 	assert(sizeof(spritetype) == 44);
 	assert((intptr_t)&sprite[1] - (intptr_t)&sprite[0] == sizeof(spritetype));
+#ifndef __AMIGA__
 	assert(sizeof(spriteexttype) == 12);
 	assert((intptr_t)&spriteext[1] - (intptr_t)&spriteext[0] == sizeof(spriteexttype));
+#endif
 
 	if (initsystem()) exit(1);
 
@@ -5394,7 +5486,7 @@ int initengine(void)
 {
 	int i, j;
 
-#if !defined _WIN32 && defined DEBUGGINGAIDS
+#if !defined _WIN32 && defined DEBUGGINGAIDS && !defined __AMIGA__
 	struct sigaction sigact, oldact;
 	memset(&sigact, 0, sizeof(sigact));
 	sigact.sa_sigaction = sighandler;
@@ -5413,6 +5505,7 @@ int initengine(void)
 	parallaxtype = 2; parallaxyoffs = 0L; parallaxyscale = 65536;
 	showinvisibility = 0;
 
+#ifndef __AMIGA__
 	for(i=1;i<1024;i++) lowrecip[i] = ((1<<24)-1)/i;
 	for(i=0;i<MAXVOXELS;i++)
 		for(j=0;j<MAXVOXMIPS;j++)
@@ -5423,6 +5516,7 @@ int initengine(void)
 	for(i=0;i<MAXTILES;i++)
 		tiletovox[i] = -1;
 	clearbuf(&voxscale[0],sizeof(voxscale)>>2,65536L);
+#endif
 
 #if USE_POLYMOST
 	polymost_initosdfuncs();
@@ -7964,6 +8058,9 @@ void copytilepiece(int tilenume1, int sx1, int sy1, int xsiz, int ysiz,
 //
 int qloadkvx(int voxindex, char *filename)
 {
+#ifdef __AMIGA__
+	return -1;
+#else
 	int i, fil, dasiz, lengcnt, lengtot;
 	unsigned char *ptr;
 
@@ -7994,6 +8091,7 @@ int qloadkvx(int voxindex, char *filename)
 	voxmodels[voxindex] = voxload(filename);
 #endif
 	return 0;
+#endif
 }
 
 
@@ -8077,11 +8175,20 @@ int inside(int x, int y, short sectnum)
 		if ((y1^y2) < 0)
 		{
 			x1 = wal->x-x; x2 = wall[wal->point2].x-x;
+#ifdef ENGINE_19950829
+			//cnt ^= (((x1^x2) < 0) ? (x1*y2<x2*y1)^(y1<y2) : (x1 >= 0));
+			if ((x1^x2) < 0) cnt ^= (x1*y2<x2*y1)^(y1<y2); else cnt ^= (x1 >= 0);
+#else
 			if ((x1^x2) >= 0) cnt ^= x1; else cnt ^= (x1*y2-x2*y1)^y2;
+#endif
 		}
 		wal++; i--;
 	} while (i);
+#ifdef ENGINE_19950829
+	return(cnt);
+#else
 	return(cnt>>31);
+#endif
 }
 
 
@@ -8106,7 +8213,19 @@ int getangle(int xvect, int yvect)
 //
 int ksqrt(int num)
 {
+#ifdef ENGINE_19950829
+	uint32_t shift = 0;
+	uint32_t n = klabs((int32_t)num);
+	while (n >= 2048)
+	{
+		n >>= 2;
+		++shift;
+	}
+	uint32_t const s = sqrtable_old[n];
+	return (s << shift) >> 10;
+#else
 	return(nsqrtasm(num));
+#endif
 }
 
 
@@ -8283,6 +8402,42 @@ int nextsectorneighborz(short sectnum, int thez, short topbottom, short directio
 //
 int cansee(int x1, int y1, int z1, short sect1, int x2, int y2, int z2, short sect2)
 {
+#ifdef ENGINE_19950829
+    sectortype *sec, *nsec;
+    walltype *wal, *wal2;
+    int32_t intx, inty, intz, i, cnt, nexts, dasectnum, dacnt, danum;
+
+    if ((x1 == x2) && (y1 == y2) && (sect1 == sect2)) return 1;
+
+    clipsectorlist[0] = sect1; danum = 1;
+    for(dacnt=0;dacnt<danum;dacnt++)
+    {
+        dasectnum = clipsectorlist[dacnt]; sec = &sector[dasectnum];
+
+        for(cnt=sec->wallnum,wal=&wall[sec->wallptr];cnt>0;cnt--,wal++)
+        {
+            wal2 = &wall[wal->point2];
+            if (lintersect(x1,y1,z1,x2,y2,z2,wal->x,wal->y,wal2->x,wal2->y,&intx,&inty,&intz) != 0)
+            {
+                nexts = wal->nextsector; if (nexts < 0) return 0;
+
+                if (intz <= sec->ceilingz) return 0;
+                if (intz >= sec->floorz) return 0;
+                nsec = &sector[nexts];
+                if (intz <= nsec->ceilingz) return 0;
+                if (intz >= nsec->floorz) return 0;
+
+                for(i=danum-1;i>=0;i--)
+                    if (clipsectorlist[i] == nexts) break;
+                if (i < 0) clipsectorlist[danum++] = nexts;
+            }
+        }
+
+        if (clipsectorlist[dacnt] == sect2)
+            return 1;
+    }
+    return 0;
+#else
 	sectortype *sec;
 	walltype *wal, *wal2;
 	int i, cnt, nexts, x, y, z, cz, fz, dasectnum, dacnt, danum;
@@ -8325,6 +8480,7 @@ int cansee(int x1, int y1, int z1, short sect1, int x2, int y2, int z2, short se
 	}
 	for(i=danum-1;i>=0;i--) if (clipsectorlist[i] == sect2) return(1);
 	return(0);
+#endif
 }
 
 
@@ -8361,6 +8517,7 @@ int hitscan(int xs, int ys, int zs, short sectnum, int vx, int vy, int vz,
 	{
 		dasector = clipsectorlist[tempshortcnt]; sec = &sector[dasector];
 
+#ifndef ENGINE_19950829
 		x1 = 0x7fffffff;
 		if (sec->ceilingstat&2)
 		{
@@ -8438,6 +8595,7 @@ int hitscan(int xs, int ys, int zs, short sectnum, int vx, int vy, int vz,
 				*hitsect = dasector; *hitwall = -1; *hitsprite = -1;
 				*hitx = x1; *hity = y1; *hitz = z1;
 			}
+#endif
 
 		startwall = sec->wallptr; endwall = startwall + sec->wallnum;
 		for(z=startwall,wal=&wall[startwall];z<endwall;z++,wal++)
@@ -8448,6 +8606,49 @@ int hitscan(int xs, int ys, int zs, short sectnum, int vx, int vy, int vz,
 			if ((x1-xs)*(y2-ys) < (x2-xs)*(y1-ys)) continue;
 			if (rintersect(xs,ys,zs,vx,vy,vz,x1,y1,x2,y2,&intx,&inty,&intz) == 0) continue;
 
+#ifdef ENGINE_19950829
+			if (vz != 0)
+			{
+				if ((intz <= sec->ceilingz) || (intz >= sec->floorz))
+				{
+					if (klabs(intx-xs)+klabs(inty-ys) < klabs(*hitx-xs)+klabs(*hity-ys))
+					{
+						//x1,y1,z1 are temp variables
+						if (vz > 0) z1 = sec->floorz; else z1 = sec->ceilingz;
+						x1 = xs + scale(z1-zs,vx,vz);
+						y1 = ys + scale(z1-zs,vy,vz);
+						if (inside(x1,y1,dasector) == 1)
+						{
+							//hit_set(hit, dasector, -1, -1, x1, y1, z1);
+							*hitsect = dasector; *hitwall = -1; *hitsprite = -1;
+							*hitx = x1; *hity = y1; *hitz = z1;
+							continue;
+						}
+					}
+				}
+			}
+
+			nextsector = wal->nextsector;
+			if ((nextsector < 0) || (wal->cstat&dawalclipmask))
+			{
+				if ((klabs(intx-xs)+klabs(inty-ys) < klabs(*hitx-xs)+klabs(*hity-ys)))
+				{
+					*hitsect = dasector; *hitwall = z; *hitsprite = -1;
+					*hitx = intx; *hity = inty; *hitz = intz;
+				}
+				continue;
+			}
+
+			if (intz <= sector[nextsector].ceilingz || intz >= sector[nextsector].floorz)
+			{
+				if ((klabs(intx-xs)+klabs(inty-ys) < klabs(*hitx-xs)+klabs(*hity-ys)))
+				{
+					*hitsect = dasector; *hitwall = z; *hitsprite = -1;
+					*hitx = intx; *hity = inty; *hitz = intz;
+				}
+				continue;
+			}
+#else
 			if (klabs(intx-xs)+klabs(inty-ys) >= klabs((*hitx)-xs)+klabs((*hity)-ys)) continue;
 
 			nextsector = wal->nextsector;
@@ -8464,6 +8665,7 @@ int hitscan(int xs, int ys, int zs, short sectnum, int vx, int vy, int vz,
 				*hitx = intx; *hity = inty; *hitz = intz;
 				continue;
 			}
+#endif
 
 			for(zz=tempshortnum-1;zz>=0;zz--)
 				if (clipsectorlist[zz] == nextsector) break;
@@ -8841,7 +9043,11 @@ int clipmove (int *x, int *y, int *z, short *sectnum,
 	cy = (((*y)+goaly)>>1);
 		//Extra walldist for sprites on sector lines
 	gx = goalx-(*x); gy = goaly-(*y);
+#ifdef ENGINE_19950829
+	rad = ksqrt(gx*gx + gy*gy) + MAXCLIPDIST+walldist + 8;
+#else
 	rad = nsqrtasm(gx*gx + gy*gy) + MAXCLIPDIST+walldist + 8;
+#endif
 	xmin = cx-rad; ymin = cy-rad;
 	xmax = cx+rad; ymax = cy+rad;
 
@@ -8876,20 +9082,30 @@ int clipmove (int *x, int *y, int *z, short *sectnum,
 			if ((wal->nextsector < 0) || (wal->cstat&dawalclipmask)) clipyou = 1;
 			else if (editstatus == 0)
 			{
+#ifndef ENGINE_19950829
 				if (rintersect(*x,*y,0,gx,gy,0,x1,y1,x2,y2,&dax,&day,&daz) == 0)
+#endif
 					dax = *x, day = *y;
 				daz = getflorzofslope((short)dasect,dax,day);
 				daz2 = getflorzofslope(wal->nextsector,dax,day);
 
 				sec2 = &sector[wal->nextsector];
+#ifdef ENGINE_19950829
+				if (daz2 < daz)
+#else
 				if (daz2 < daz-(1<<8))
+#endif
 					if ((sec2->floorstat&1) == 0)
 						if ((*z) >= daz2-(flordist-1)) clipyou = 1;
 				if (clipyou == 0)
 				{
 					daz = getceilzofslope((short)dasect,dax,day);
 					daz2 = getceilzofslope(wal->nextsector,dax,day);
+#ifdef ENGINE_19950829
+					if (daz2 > daz)
+#else
 					if (daz2 > daz+(1<<8))
+#endif
 						if ((sec2->ceilingstat&1) == 0)
 							if ((*z) <= daz2+(ceildist-1)) clipyou = 1;
 				}
@@ -9055,7 +9271,11 @@ int clipmove (int *x, int *y, int *z, short *sectnum,
 			{
 				templong1 = (goalx-intx)*lx + (goaly-inty)*ly;
 
+#ifdef ENGINE_19950829
+				if (1)
+#else
 				if ((klabs(templong1)>>11) < templong2)
+#endif
 					i = divscale20(templong1,templong2);
 				else
 					i = 0;
@@ -9063,14 +9283,24 @@ int clipmove (int *x, int *y, int *z, short *sectnum,
 				goaly = mulscale20(ly,i)+inty;
 			}
 
+#ifdef ENGINE_19950829
+			templong1 = lx*(oxvect>>6)+ly*(oyvect>>6);
+#else
 			templong1 = dmulscale6(lx,oxvect,ly,oyvect);
+#endif
 			for(i=cnt+1;i<=clipmoveboxtracenum;i++)
 			{
 				j = hitwalls[i];
+#ifdef ENGINE_19950829
+				templong2 = (clipit[j].x2-clipit[j].x1)*(oxvect>>6)+(clipit[j].y2-clipit[j].y1)*(oyvect>>6);
+#else
 				templong2 = dmulscale6(clipit[j].x2-clipit[j].x1,oxvect,clipit[j].y2-clipit[j].y1,oyvect);
+#endif
 				if ((templong1^templong2) < 0)
 				{
+#if !defined ENGINE_19950829 && !defined ENGINE_19960925
 					updatesector(*x,*y,sectnum);
+#endif
 					return(retval);
 				}
 			}
@@ -9099,9 +9329,11 @@ int clipmove (int *x, int *y, int *z, short *sectnum,
 	for(j=numsectors-1;j>=0;j--)
 		if (inside(*x,*y,j) == 1)
 		{
+#ifndef ENGINE_19950829
 			if (sector[j].ceilingstat&2)
 				templong2 = (getceilzofslope((short)j,*x,*y)-(*z));
 			else
+#endif
 				templong2 = (sector[j].ceilingz-(*z));
 
 			if (templong2 > 0)
@@ -9111,9 +9343,11 @@ int clipmove (int *x, int *y, int *z, short *sectnum,
 			}
 			else
 			{
+#ifndef ENGINE_19950829
 				if (sector[j].floorstat&2)
 					templong2 = ((*z)-getflorzofslope((short)j,*x,*y));
 				else
+#endif
 					templong2 = ((*z)-sector[j].floorz);
 
 				if (templong2 <= 0)
@@ -9209,7 +9443,10 @@ int pushmove (int *x, int *y, int *z, short *sectnum,
 					{
 						sec2 = &sector[wal->nextsector];
 
-
+#ifdef ENGINE_19950829
+						dax = *x;
+						day = *y;
+#else
 							//Find closest point on wall (dax, day) to (*x, *y)
 						dax = wall[wal->point2].x-wal->x;
 						day = wall[wal->point2].y-wal->y;
@@ -9223,16 +9460,25 @@ int pushmove (int *x, int *y, int *z, short *sectnum,
 						}
 						dax = wal->x + mulscale30(dax,t);
 						day = wal->y + mulscale30(day,t);
+#endif
 
 
 						daz = getflorzofslope(clipsectorlist[clipsectcnt],dax,day);
 						daz2 = getflorzofslope(wal->nextsector,dax,day);
+#ifdef ENGINE_19950829
+						if ((daz2 < daz) && ((sec2->floorstat&1) == 0))
+#else
 						if ((daz2 < daz-(1<<8)) && ((sec2->floorstat&1) == 0))
+#endif
 							if (*z >= daz2-(flordist-1)) j = 1;
 
 						daz = getceilzofslope(clipsectorlist[clipsectcnt],dax,day);
 						daz2 = getceilzofslope(wal->nextsector,dax,day);
+#ifdef ENGINE_19950829
+						if ((daz2 > daz) && ((sec2->ceilingstat&1) == 0))
+#else
 						if ((daz2 > daz+(1<<8)) && ((sec2->ceilingstat&1) == 0))
+#endif
 							if (*z <= daz2+(ceildist-1)) j = 1;
 					}
 					if (j != 0)
@@ -9409,7 +9655,12 @@ void getzrange(int x, int y, int z, short sectnum,
 	xmin = x-i; ymin = y-i;
 	xmax = x+i; ymax = y+i;
 
+#ifdef ENGINE_19950829
+	*ceilz = getceilzofslope(sectnum,x,y);
+	*florz = getflorzofslope(sectnum,x,y);
+#else
 	getzsofslope(sectnum,x,y,ceilz,florz);
+#endif
 	*ceilhit = sectnum+16384; *florhit = sectnum+16384;
 
 	dawalclipmask = (cliptype&65535);
@@ -9461,7 +9712,12 @@ void getzrange(int x, int y, int z, short sectnum,
 				if (dax >= day) continue;
 
 					//It actually got here, through all the continue's!!!
+#ifdef ENGINE_19950829
+				daz  = getceilzofslope(k,x,y);
+				daz2 = getflorzofslope(k,x,y);
+#else
 				getzsofslope((short)k,x,y,&daz,&daz2);
+#endif
 				if (daz > *ceilz) { *ceilz = daz; *ceilhit = k+16384; }
 				if (daz2 < *florz) { *florz = daz2; *florhit = k+16384; }
 			}
@@ -10195,9 +10451,16 @@ int getceilzofslope(short sectnum, int dax, int day)
 	if (!(sector[sectnum].ceilingstat&2)) return(sector[sectnum].ceilingz);
 	wal = &wall[sector[sectnum].wallptr];
 	dx = wall[wal->point2].x-wal->x; dy = wall[wal->point2].y-wal->y;
+#ifdef ENGINE_19950829
+	i = (ksqrt(dx*dx+dy*dy)); if (i == 0) return(sector[sectnum].ceilingz);
+	i = divscale15(sector[sectnum].ceilingheinum,i);
+	dx *= i; dy *= i;
+	return(sector[sectnum].ceilingz+dmulscale23(dx,day-wal->y,-dy,dax-wal->x));
+#else
 	i = (nsqrtasm(dx*dx+dy*dy)<<5); if (i == 0) return(sector[sectnum].ceilingz);
 	j = dmulscale3(dx,day-wal->y,-dy,dax-wal->x);
 	return(sector[sectnum].ceilingz+scale(sector[sectnum].ceilingheinum,j,i));
+#endif
 }
 
 
@@ -10212,9 +10475,16 @@ int getflorzofslope(short sectnum, int dax, int day)
 	if (!(sector[sectnum].floorstat&2)) return(sector[sectnum].floorz);
 	wal = &wall[sector[sectnum].wallptr];
 	dx = wall[wal->point2].x-wal->x; dy = wall[wal->point2].y-wal->y;
+#ifdef ENGINE_19950829
+	i = (ksqrt(dx*dx+dy*dy)); if (i == 0) return(sector[sectnum].floorz);
+	i = divscale15(sector[sectnum].floorheinum,i);
+	dx *= i; dy *= i;
+	return(sector[sectnum].floorz+dmulscale23(dx,day-wal->y,-dy,dax-wal->x));
+#else
 	i = (nsqrtasm(dx*dx+dy*dy)<<5); if (i == 0) return(sector[sectnum].floorz);
 	j = dmulscale3(dx,day-wal->y,-dy,dax-wal->x);
 	return(sector[sectnum].floorz+scale(sector[sectnum].floorheinum,j,i));
+#endif
 }
 
 

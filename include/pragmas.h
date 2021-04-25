@@ -3624,6 +3624,18 @@ static __inline void swapchar2(void *a, void *b, int s)
 #define wo(x)	((int16_t)(x))		// word cast
 #define by(x)	((int8_t)(x))		// byte cast
 
+#if defined __AMIGA__
+
+#include <SDI_compiler.h>
+
+#define _scaler(a) \
+extern int ASM mulscale##a(REG(d0, int eax), REG(d1, int edx)); \
+extern int ASM divscale##a(REG(d0, int eax), REG(d1, int ebx)); \
+extern int ASM dmulscale##a(REG(d0, int eax), REG(d1, int edx), REG(d2, int esi), REG(d3, int edi)); \
+extern int ASM tmulscale##a(REG(d0, int eax), REG(d1, int edx), REG(d2, int ebx), REG(d3, int ecx), REG(d4, int esi), REG(d5, int edi)); \
+
+#else
+
 #define _scaler(a) \
 static inline int mulscale##a(int eax, int edx) \
 { \
@@ -3644,6 +3656,8 @@ static inline int tmulscale##a(int eax, int edx, int ebx, int ecx, int esi, int 
 { \
 	return dw(((qw(eax) * qw(edx)) + (qw(ebx) * qw(ecx)) + (qw(esi) * qw(edi))) >> a); \
 } \
+
+#endif
 
 _scaler(1)	_scaler(2)	_scaler(3)	_scaler(4)
 _scaler(5)	_scaler(6)	_scaler(7)	_scaler(8)
@@ -3681,6 +3695,18 @@ static inline int kmin(int a, int b) { if ((signed int)a < (signed int)b) return
 static inline int kmax(int a, int b) { if ((signed int)a < (signed int)b) return b; return a; }
 
 static inline int sqr(int eax) { return (eax) * (eax); }
+
+#if defined __AMIGA__
+
+extern int ASM scale(REG(d0, int eax), REG(d1, int edx), REG(d2, int ecx));
+extern int ASM mulscale(REG(d0, int eax), REG(d1, int edx), REG(d2, int ecx));
+extern int ASM divscale(REG(d0, int eax), REG(d1, int ebx), REG(d2, int ecx));
+extern int ASM dmulscale(REG(d0, int eax), REG(d1, int edx), REG(d2, int esi), REG(d3,int edi), REG(d4,int ecx));
+
+extern int ASM boundmulscale(REG(d0, int a), REG(d1,int d), REG(d2,int c));
+
+#else
+
 static inline int scale(int eax, int edx, int ecx) { return dw((qw(eax) * qw(edx)) / qw(ecx)); }
 static inline int mulscale(int eax, int edx, int ecx) { return dw((qw(eax) * qw(edx)) >> by(ecx)); }
 static inline int divscale(int eax, int ebx, int ecx) { return dw((qw(eax) << by(ecx)) / qw(ebx)); }
@@ -3695,11 +3721,29 @@ static inline int boundmulscale(int a, int d, int c)
     return((int)p);
 }
 
+#endif
+
 #undef qw
 #undef dw
 #undef wo
 #undef by
 #undef _scaler
+
+#ifdef __AMIGA__
+
+extern void ASM qinterpolatedown16(REG(a0,void *source), REG(d0,int size), REG(d1,int linum), REG(d2,int linum_inc));
+extern void ASM qinterpolatedown16short(REG(a0,void *source), REG(d0,int size), REG(d1,int linum), REG(d2,int linum_inc));
+
+extern void ASM clearbuf(REG(a0,void *buffer), REG(d0,int size), REG(d1,int fill_value));
+extern void ASM copybuf(REG(a0,void *source), REG(a1,void *dest), REG(d0,int size));
+
+extern void ASM clearbufbyte(REG(a0,void *buffer), REG(d0,int size), REG(d1,int fill_value));
+extern void ASM copybufbyte(REG(a0,void *source), REG(a1,void *dest), REG(d0,int size));
+extern void ASM copybufreverse(REG(a0,void *source), REG(a1,void *dest), REG(d0,int size));
+
+void swapbuf4(void* a, void* b, int c); // pragmas.c
+
+#else
 
 void qinterpolatedown16 (void *bufptr, int num, int val, int add);
 void qinterpolatedown16short (void *bufptr, int num, int val, int add);
@@ -3711,6 +3755,8 @@ void swapbuf4(void* a, void* b, int c);
 void clearbufbyte(void *D, int c, int a);
 void copybufbyte(void *S, void *D, int c);
 void copybufreverse(void *S, void *D, int c);
+
+#endif
 
 #endif
 

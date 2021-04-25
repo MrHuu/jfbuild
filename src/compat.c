@@ -49,6 +49,10 @@
 #  include <sys/sysctl.h> // for sysctl() to get path to executable
 #endif
 
+#if defined(__AROS__) || defined(__AMIGA__)
+#  include <proto/exec.h> // AvailMem
+#endif
+
 #include "compat.h"
 
 
@@ -866,6 +870,8 @@ size_t Bgetsysmemsize(void)
 	//		scphyspages, scpagesiz, siz);
 
 	return siz;
+#elif defined(__AROS__) || defined(__AMIGA__)
+	return (size_t)AvailMem(MEMF_FAST|MEMF_TOTAL);
 #else
 	return 0x7fffffff;
 #endif
