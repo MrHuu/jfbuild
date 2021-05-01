@@ -1035,8 +1035,10 @@ void getvalidmodes(void)
 			continue;
 
 		// no interlace modes as they are slow
+		/*
 		if (!GetDisplayInfoData(NULL, (UBYTE *)&dispinfo, sizeof(dispinfo), DTAG_DISP, modeID) || (dispinfo.PropertyFlags & DIPF_IS_LACE))
 			continue;
+		*/
 
 		int width = diminfo.Nominal.MaxX + 1;
 		int height = diminfo.Nominal.MaxY + 1;
@@ -1243,7 +1245,7 @@ int setvideomode(int x, int y, int c, int fs)
 				BIDTAG_NominalWidth, x,
 				BIDTAG_NominalHeight, y,
 				BIDTAG_Depth, 8,
-				BIDTAG_DIPFMustNotHave, SPECIAL_FLAGS|DIPF_IS_LACE,
+				//BIDTAG_DIPFMustNotHave, SPECIAL_FLAGS|DIPF_IS_LACE,
 				(fsMonitorID == (ULONG)INVALID_ID) ? TAG_IGNORE : BIDTAG_MonitorID, fsMonitorID,
 				TAG_DONE);
 		}
