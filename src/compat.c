@@ -51,6 +51,9 @@
 
 #if defined(__AROS__) || defined(__AMIGA__)
 #  include <proto/exec.h> // AvailMem
+#  define DEVICES_TIMER_H
+#  include <proto/dos.h>
+#  include <sys/syslimits.h> // PATH_MAX
 #endif
 
 #include "compat.h"
@@ -421,6 +424,11 @@ char *Bgetappdir(void)
         // again, remove executable name with dirname()
         // on FreeBSD dirname() seems to use some internal buffer
         dir = strdup(dirname(buf));
+    }
+#elif defined(__AMIGA__)
+    char buf[PATH_MAX] = {0};
+    if (NameFromLock(GetProgramDir(), buf, sizeof(buf))) {
+        dir = strdup(buf);
     }
 #endif
     
