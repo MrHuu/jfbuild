@@ -64,17 +64,6 @@ extern "C" {
 #define MAXSPRITESONSCREEN 1024
 #define MAXUNIQHUDID 256 //Extra slots so HUD models can store animation state without messing game sprites
 
-#ifdef ENGINE_19950829
-#undef MAXSECTORS
-#define MAXSECTORS MAXSECTORSV6
-#undef MAXWALLS
-#define MAXWALLS MAXWALLSV6
-#undef MAXSPRITES
-#define MAXSPRITES MAXSPRITESV6
-#undef MAXTILES
-#define MAXTILES MAXTILESV6
-#endif
-
 #define CLIPMASK0 (((1L)<<16)+1L)
 #define CLIPMASK1 (((256L)<<16)+64L)
 
