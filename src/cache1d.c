@@ -282,7 +282,11 @@ int addsearchpath(const char *p)
 	strcpy(srch->path, p);
 	for (s=srch->path; *s; s++) ;
 	s--;
+#ifdef __AMIGA__
+	if (s<srch->path || (toupperlookup[(int)(unsigned char)*s] != '/' && *s != ':')) strcat(srch->path, "/");
+#else
 	if (s<srch->path || toupperlookup[(int)(unsigned char)*s] != '/') strcat(srch->path, "/");
+#endif
 
 	searchpathhead = srch;
 	if (srch->pathlen > maxsearchpathlen) maxsearchpathlen = srch->pathlen;
