@@ -443,6 +443,7 @@ static int defsparser(scriptfile *script)
 				break;
 			case T_DEFINEVOXEL:
 				{
+#ifndef __AMIGA__
 					char *fn;
 
 					if (scriptfile_getstring(script,&fn)) break; //voxel filename
@@ -458,6 +459,7 @@ static int defsparser(scriptfile *script)
 					}
 
 					lastvoxid = nextvoxid++;
+#endif
 				}
 				break;
 			case T_DEFINEVOXELTILES:
