@@ -66,6 +66,8 @@ static char wintitle[256] = "";
 static struct Window *window = NULL;
 static struct Screen *screen = NULL;
 static unsigned char ppal[256 * 4];
+static ULONG spal[1 + (256 * 3) + 1];
+static int updatePalette = 0;
 #ifndef __AROS__
 struct Library *CyberGfxBase = NULL;
 #else
@@ -796,7 +798,7 @@ static SAVEDS ASM void BEL_ST_TimerInterrupt(REG(a1, APTR intData))
 {
 	totalclock++;
 	if (usertimercallback)
-		usertimercallback(); // TODO this can call OSD_Dispatch
+		usertimercallback();
 }
 #endif
 
@@ -902,7 +904,7 @@ void sampletimer(void)
 //
 unsigned int getticks(void)
 {
-	// used to time precache, loaddefinitiosn, etc. it can be called before inittimer
+	// this it can be called before inittimer
 	//return (unsigned int)getusecticks() / 1000;
 	struct DateStamp date;
 	DateStamp(&date);
@@ -916,7 +918,6 @@ unsigned int getticks(void)
 //
 unsigned int getusecticks(void)
 {
-	// used for the menu plasma random seed in Exhumed
 #ifdef TIMERINT
 	ULONG frac = ElapsedTime(&timeval);
 	timecount += frac;
@@ -1472,6 +1473,10 @@ void showframe(void)
 		} else {
 			WritePixelArray8(window->RPort, 0, 0, xres - 1, yres - 1, frame, &temprp);
 		}
+		if (updatePalette) {
+			LoadRGB32(&screen->ViewPort, spal);
+			updatePalette = 0;
+		}
 	} else {
 		WriteLUTPixelArray(frame, 0, 0, bytesperline, window->RPort, ppal, window->BorderLeft, window->BorderTop, xres, yres, CTABFMT_XRGB8);
 	}
@@ -1486,7 +1491,7 @@ int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal)
 	int i;
 
 	if (screen) {
-		static ULONG spal[1 + (256 * 3) + 1];
+		//static ULONG spal[1 + (256 * 3) + 1];
 		ULONG *sp = spal;
 
 		*sp++ = 256 << 16;
@@ -1497,7 +1502,8 @@ int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal)
 		}
 		*sp = 0;
 
-		LoadRGB32(&screen->ViewPort, spal);
+		//LoadRGB32(&screen->ViewPort, spal);
+		updatePalette = 1;
 	} else {
 		unsigned char *pp = ppal;
 
@@ -1652,10 +1658,17 @@ int handleevents(void)
 #ifndef __AROS__
 					// quick and dirty raw key to vanilla key conversion
 					int ch = 0;
-					if ((qualifier & (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT | IEQUALIFIER_CAPSLOCK)) != 0) {
+					if ((qualifier & (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT /*| IEQUALIFIER_CAPSLOCK*/)) != 0) {
 						ch = keyascii_shift[code];
 					} else {
 						ch = keyascii[code];
+					}
+					if ((qualifier & IEQUALIFIER_CAPSLOCK) != 0 && isalpha(ch))
+					{
+						if (isupper(ch))
+							ch = tolower(ch);
+						else
+							ch = toupper(ch);
 					}
 					if (ch && OSD_HandleChar(ch)) {
 						if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
