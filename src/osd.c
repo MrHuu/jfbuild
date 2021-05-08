@@ -788,7 +788,11 @@ void OSD_ResizeDisplay(int w, int h)
 {
 	int newcols;
 	int newmaxlines;
+#ifdef __AMIGA__
+	char *newtext;
+#else
 	char newtext[TEXTSIZE];
+#endif
 	int i,j,k;
 
 	newcols = getcolumnwidth(w);
@@ -797,12 +801,20 @@ void OSD_ResizeDisplay(int w, int h)
 	j = min(newmaxlines, osdmaxlines);
 	k = min(newcols, osdcols);
 
+#ifdef __AMIGA__
+	newtext = (char *)Bmalloc(TEXTSIZE);
+	if (newtext) {
+#endif
 	memset(newtext, 0, TEXTSIZE);
 	for (i=0;i<j;i++) {
 		memcpy(newtext+newcols*i, osdtext+osdcols*i, k);
 	}
 
 	memcpy(osdtext, newtext, TEXTSIZE);
+#ifdef __AMIGA__
+	Bfree(newtext);
+	}
+#endif
 	osdcols = newcols;
 	osdmaxlines = newmaxlines;
 	osdmaxrows = getrowheight(h)-2;
