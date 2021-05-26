@@ -49,8 +49,11 @@
 #  include <sys/sysctl.h> // for sysctl() to get path to executable
 #endif
 
-#include "compat.h"
+#if defined _3DS
+#include <3ds.h>
+#endif
 
+#include "compat.h"
 
 #ifndef __compat_h_macrodef__
 
@@ -866,6 +869,8 @@ size_t Bgetsysmemsize(void)
 	//		scphyspages, scpagesiz, siz);
 
 	return siz;
+#elif defined _3DS
+    return (uint32_t)osGetMemRegionFree( MEMREGION_ALL );
 #else
 	return 0x7fffffff;
 #endif

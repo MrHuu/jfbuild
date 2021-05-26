@@ -7813,11 +7813,18 @@ int loadpics(char *filename, int askedsize)
 
 	//try dpmi_DETERMINEMAXREALALLOC!
 
+#ifdef _3DS
+        cachesize = 4 * 1024 * 1024;
+#else
+
 	//cachesize = min((int)((Bgetsysmemsize()/100)*60),max(artsize,askedsize));
 	if (Bgetsysmemsize() <= (unsigned int)askedsize)
 		cachesize = (Bgetsysmemsize()/100)*60;
 	else
 		cachesize = askedsize;
+
+#endif
+
 	while ((pic = kmalloc(cachesize)) == NULL)
 	{
 		cachesize -= 65536L;
