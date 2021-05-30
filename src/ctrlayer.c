@@ -24,8 +24,6 @@ intptr_t frameplace=0;
 char modechange=1;
 char offscreenrendering=0;
 char videomodereset = 0;
-extern int gammabrightness;
-extern float curgamma;
 
 uint8_t *framebuffer;
 uint16_t *fb;
@@ -100,8 +98,6 @@ int main(int argc, char *argv[])
 
 	r = app_main(_buildargc, (char const * const*)_buildargv);
 
-//	SDL_Quit();
-
 	return r;
 }
 
@@ -164,8 +160,6 @@ void ctr_clear_console()
 //
 // initinput() -- init input system
 //
-
-
 int initinput(void)
 {
     inputdevices = 2|4;  // keyboard (1) mouse (2) joystick (4)
@@ -188,10 +182,8 @@ void uninitinput(void)
 }
 
 const char *getkeyname(int num)
-{/*
-	if ((unsigned)num >= 256) return NULL;
-	return keynames[num];
-*/}
+{
+}
 
 static const char *joynames[15] =
 {
@@ -265,7 +257,6 @@ void uninitmouse(void)
 //
 void readmousexy(int *x, int *y)
 {
-//	if (!mouseacquired || !appactive || !moustat) { *x = *y = 0; return; }
 	if (!appactive || !moustat) { *x = *y = 0; return; }
 
 	*x = mousex;
@@ -277,14 +268,8 @@ void readmousexy(int *x, int *y)
 // readmousebstatus() -- return mouse button information
 //
 void readmousebstatus(int *b)
-{/*
-	if (!mouseacquired || !appactive || !moustat) *b = 0;
-	else *b = mouseb;
-	// clear mousewheel events - the game has them now (in *b)
-	// the other mousebuttons are cleared when there's a "button released"
-	// event, but for the mousewheel that doesn't work, as it's released immediately
-	mouseb &= ~(1<<4 | 1<<5);
-*/}
+{
+}
 
 //
 // releaseallbuttons()
@@ -732,7 +717,7 @@ int handleevents(void)
     return 0;
 }
 
-bool ctr_swkbd(const char *hintText, const char *inText, char *outText)
+int ctr_swkbd(const char *hintText, const char *inText, char *outText)
 {
     SwkbdState swkbd;
 
@@ -748,7 +733,7 @@ bool ctr_swkbd(const char *hintText, const char *inText, char *outText)
     if (button == SWKBD_BUTTON_CONFIRM)
     {
         strncpy(outText, mybuf, strlen(mybuf));
-        return true;
+        return 0;
     }
-    return false;
+    return -1;
 }
