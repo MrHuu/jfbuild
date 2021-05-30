@@ -1,25 +1,5 @@
-// SDL interface layer
+// CTR interface layer
 // for the Build Engine
-// by Jonathon Fowler (jf@jonof.id.au)
-//
-// Use SDL2 from http://www.libsdl.org
-
-/*
- * Re: SDL surface blit vs renderer.
- *
- * Experiments on a Raspberry Pi 3 Model B+ have demonstrated that
- * there's merit in both 8-bit mode blitting techniques depending on
- * the Pi's configuration. With the GL driver disabled, the surface blit
- * path is significantly faster. With the GL driver enabled, the SDL
- * renderer interface is slightly quicker. However, faster than both is
- * the forthcoming GLSL 2 blitter. Also, on a Mac Mini G4 with hampered
- * AGP under Debian 8, surface blit is fast and the renderer slower.
- */
-
-// have stdio.h declare vasprintf
-#ifndef _GNU_SOURCE
-# define _GNU_SOURCE 1
-#endif
 
 # include <3ds.h>
 
@@ -31,7 +11,6 @@
 #include "pragmas.h"
 #include "a.h"
 #include "osd.h"
-
 
 // undefine to restrict windowed resolutions to conventional sizes
 #define ANY_WINDOWED_SIZE
@@ -126,39 +105,25 @@ int main(int argc, char *argv[])
 	return r;
 }
 
-
 //
 // initsystem() -- init SDL systems
 //
 int initsystem(void)
 {
-	
-//	printf("initsystem\n");
-/*
-	atexit(uninitsystem);
-*/
 	frameplace = 0;
 	return 0;
 }
-
 
 //
 // uninitsystem() -- uninit SDL systems
 //
 void uninitsystem(void)
 {
-	
-	printf("uninitsystem\n");
-	
-	/*
 	uninitinput();
 	uninitmouse();
 	uninittimer();
-
 	shutdownvideo();
-	*/
 }
-
 
 //
 // initputs() -- prints a string to the intitialization window
@@ -166,7 +131,6 @@ void uninitsystem(void)
 void initputs(const char *str)
 {
 }
-
 
 //
 // debugprintf() -- prints a debug string to stderr
@@ -182,6 +146,10 @@ void debugprintf(const char *f, ...)
 #endif
 }
 
+void ctr_clear_console()
+{
+    printf("\e[1;1H\e[2J");
+}
 
 //
 //
@@ -205,7 +173,7 @@ int initinput(void)
 
     memset(keynames, 0, sizeof(keynames));
 
-    joynumbuttons = 14;
+    joynumbuttons = 15;
     joynumaxes = 4;
 
     return 0;
@@ -215,9 +183,8 @@ int initinput(void)
 // uninitinput() -- uninit input system
 //
 void uninitinput(void)
-{/*
+{
 	uninitmouse();
-*/
 }
 
 const char *getkeyname(int num)
@@ -256,10 +223,12 @@ const char *getjoyname(int what, int num)
 
 unsigned char bgetchar(void)
 {
+	return;
 }
 
 int bkbhit(void)
 {
+	return false;
 }
 
 void bflushchars(void)
@@ -280,7 +249,6 @@ void setjoypresscallback(void (*callback)(int, int)) { joypresscallback = callba
 int initmouse(void)
 {
 	moustat=1;
-	grabmouse(1);
 	return 0;
 }
 
@@ -289,27 +257,8 @@ int initmouse(void)
 //
 void uninitmouse(void)
 {
-	grabmouse(0);
 	moustat=0;
 }
-
-
-//
-// grabmouse() -- show/hide mouse cursor
-//
-void grabmouse(int a)
-{/*
-	if (appactive && moustat) {
-		if (a != mouseacquired) {
-			SDL_SetRelativeMouseMode(a ? SDL_TRUE : SDL_FALSE);
-			mouseacquired = a;
-		}
-	} else {
-		mouseacquired = a;
-	}
-	mousex = mousey = 0;
-*/}
-
 
 //
 // readmousexy() -- return mouse motion information
@@ -557,8 +506,12 @@ int checkvideomode(int *x, int *y, int c, int fs, int forced)
 }
 
 
-static void shutdownvideo(void)
+void shutdownvideo(void)
 {
+    frameplace = 0;
+    free(framebuffer);
+
+	return 0;
 }
 
 //
@@ -598,13 +551,11 @@ void resetvideomode(void)
 //
 void begindrawing(void)
 {
-//	printf("begindrawing\n");
-	    //if (offscreenrendering) return;
+    if (offscreenrendering) return;
 
     frameplace = (intptr_t)framebuffer;
 
     if(modechange){
-        //calc_ylookup(400, 240);
         modechange=0;
     }
 }
@@ -623,7 +574,6 @@ void enddrawing(void)
 //
 void showframe(void)
 {
-//	    UNREFERENCED_PARAMETER(w);
   if (offscreenrendering) return;
   int x,y;
 
@@ -664,11 +614,8 @@ int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal)
 // setgamma
 //
 int setgamma(float gamma)
-{/*
-	if (sdl_window) {
-		return SDL_SetWindowBrightness(sdl_window, gamma) == 0;
-	}
-*/	return 0;
+{
+    return 0;
 }
 
 
@@ -718,17 +665,16 @@ void handleevents_axis()
 	circlePosition cstick;
 	hidCstickRead(&cstick);
 
-	joyaxis[0] = (circle.dx*100);
-	joyaxis[1] = (-circle.dy*100);
-	joyaxis[2] = (cstick.dx*100);
-	joyaxis[3] = (-cstick.dy*100);
+    joyaxis[0] = (circle.dx*100);
+    joyaxis[1] = (-circle.dy*100);
+    joyaxis[2] = (cstick.dx*100);
+    joyaxis[3] = (-cstick.dy*100);
 
 //printf("\x1b[1;0H%03d; %03d", circle.dx, circle.dy);
 //printf("\x1b[2;0H%03d; %03d", cstick.dx, cstick.dy);
 }
 
 void handleevents_buttons(u32 keys, int state){
-    uint32_t mod = 1;
 
     if( keys & KEY_A)
         SetKey(0, state);
@@ -738,29 +684,26 @@ void handleevents_buttons(u32 keys, int state){
         SetKey(2, state);
     if( keys & KEY_Y)
         SetKey(3, state);
-    if( keys & KEY_L)
+    if( keys & KEY_SELECT)
         SetKey(4, state);
-    if( keys & KEY_R)
-        SetKey(5, state);
-    if( keys & KEY_ZL)
+    if( keys & KEY_START)
         SetKey(6, state);
-    if( keys & KEY_ZR)
+    if( keys & KEY_ZL)
         SetKey(7, state);
     if( keys & KEY_ZR)
         SetKey(8, state);
-    if( keys & KEY_START)
+    if( keys & KEY_L)
         SetKey(9, state);
-    if( keys & KEY_SELECT)
+    if( keys & KEY_R)
         SetKey(10, state);
     if( keys & KEY_DUP)
-        SetKey(11, state); //dpad up
+        SetKey(11, state);
     if( keys & KEY_DDOWN) 
-        SetKey(12, state); //dpad down
+        SetKey(12, state);
     if( keys & KEY_DLEFT)
-        SetKey(13, state); //dpad left
+        SetKey(13, state);
     if( keys & KEY_DRIGHT) 
-        SetKey(14, state); //dpad right
-
+        SetKey(14, state);
 }
 
 //
@@ -789,3 +732,23 @@ int handleevents(void)
     return 0;
 }
 
+bool ctr_swkbd(const char *hintText, const char *inText, char *outText)
+{
+    SwkbdState swkbd;
+
+    char mybuf[16];
+
+    swkbdInit(&swkbd, SWKBD_TYPE_WESTERN, 2, 15);
+    swkbdSetValidation(&swkbd, SWKBD_NOTEMPTY_NOTBLANK, 0, 0);
+    swkbdSetInitialText(&swkbd, inText);
+    swkbdSetHintText(&swkbd, hintText);
+
+    SwkbdButton button = swkbdInputText(&swkbd, mybuf, sizeof(mybuf));
+
+    if (button == SWKBD_BUTTON_CONFIRM)
+    {
+        strncpy(outText, mybuf, strlen(mybuf));
+        return true;
+    }
+    return false;
+}
