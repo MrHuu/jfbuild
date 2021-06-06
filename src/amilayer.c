@@ -82,8 +82,7 @@ static struct MsgPort *dispport;
 static int safetochange;
 static ULONG fsMonitorID = INVALID_ID;
 static ULONG fsModeID = INVALID_ID;
-static char pubScreenName[32];
-static UBYTE *wndPubScreen = NULL;
+static UBYTE wndPubScreen[32] = {"Workbench"};
 
 static unsigned char *frame;
 int xres=-1, yres=-1, bpp=0, fullscreen=0, bytesperline, imageSize;
@@ -279,8 +278,7 @@ int main(int argc, char *argv[])
 		}
 
 		if ((value = FindToolType(appicon->do_ToolTypes, "PUBSCREEN"))) {
-			strncpy(pubScreenName, value, sizeof(pubScreenName));
-			wndPubScreen = pubScreenName;
+			strncpy(wndPubScreen, value, sizeof(wndPubScreen));
 		}
 
 		FreeDiskObject(appicon);
@@ -1334,7 +1332,7 @@ int setvideomode(int x, int y, int c, int fs)
 		flags |=  WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET;
 	}
 
-	if (wndPubScreen && !screen) {
+	if (!screen && strcasecmp(wndPubScreen, "Workbench")) {
 		buildprintf("Using forced public screen: %s\n", wndPubScreen);
 	}
 
@@ -1344,7 +1342,7 @@ int setvideomode(int x, int y, int c, int fs)
 		screen ? TAG_IGNORE : WA_Title, (IPTR)apptitle,
 		WA_Flags, flags,
 		screen ? WA_CustomScreen : TAG_IGNORE, (IPTR)screen,
-		(wndPubScreen && !screen) ? WA_PubScreenName : TAG_IGNORE, (IPTR)wndPubScreen,
+		!screen ? WA_PubScreenName : TAG_IGNORE, (IPTR)wndPubScreen,
 		WA_IDCMP, idcmp,
 		TAG_DONE);
 
