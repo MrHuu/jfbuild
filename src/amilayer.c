@@ -1714,10 +1714,6 @@ int handleevents(void)
 }
 
 #ifdef __libnix__
-// stack size. AmiDuke has 300KB, Dante's Duke3D port has 32KB. let's try 256KB
-unsigned long __stack = 0x40000;
-#include "swapstack.c"
-//int __stack = 0x100000;
 // don't touch ENV:
 char *getenv(const char *value) { return NULL; }
 // NOTES-3.4.0
