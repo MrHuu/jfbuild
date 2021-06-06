@@ -311,6 +311,9 @@ int initsystem(void)
 		c2p_write_bm = c2p1x1_8_c5_bm_040;
 	else
 		c2p_write_bm = c2p1x1_8_c5_bm;
+
+	oldFPCR = getfpcr();
+	setfpcr(0x00000020); // round toward minus infinity (RM)
 #else
 	LowLevelBase = OpenLibrary("lowlevel.libarary", 0);
 #endif
@@ -335,6 +338,11 @@ void uninitsystem(void)
 	if (CyberGfxBase) {
 		CloseLibrary(CyberGfxBase);
 		CyberGfxBase = NULL;
+	}
+	if (oldFPCR != (ULONG)-1)
+	{
+		setfpcr(oldFPCR);
+		oldFPCR = (ULONG)-1;
 	}
 #else
 	if (LowLevelBase) {
@@ -1131,16 +1139,6 @@ int checkvideomode(int *x, int *y, int c, int fs, int forced)
 
 static void shutdownvideo(void)
 {
-#ifndef __AROS__
-	// TODO this is not the right place to set the rounding
-	if (oldFPCR != (ULONG)-1)
-	{
-		setfpcr(oldFPCR);
-		oldFPCR = (ULONG)-1;
-		//buildprintf("%s oldFPCR %08x fpcr %08x\n", __FUNCTION__, oldFPCR, getfpcr());
-	}
-#endif
-
 	RemoveInputHandler();
 
 	if (frame) {
@@ -1392,13 +1390,6 @@ int setvideomode(int x, int y, int c, int fs)
 		shutdownvideo();
 		return -1;
 	}
-
-#ifndef __AROS__
-	// TODO this is not the right place to set the rounding, but it must be done after loadtables()
-	oldFPCR = getfpcr();
-	setfpcr(0x00000020); // round toward minus infinity (RM)
-	//buildprintf("%s oldFPCR %08x fpcr %08x\n", __FUNCTION__, oldFPCR, getfpcr());
-#endif
 
 	xres = x;
 	yres = y;

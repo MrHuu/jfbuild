@@ -4955,6 +4955,29 @@ static int loadtables(void)
 	int i;
 
 	initksqrt();
+#ifdef __AMIGA__
+	int fil;
+	for(i=0;i<2048;i++) reciptable[i] = divscale30(2048L,i+2048);
+
+	if ((fil = kopen4load("tables.dat",0)) != -1)
+	{
+		for (i = 0; i < 2048; i++) {
+			kread(fil,&sintable[i],2);
+			sintable[i] = B_LITTLE16(sintable[i]);
+		}
+
+		for (i = 0; i < 640; i++) {
+			kread(fil,&radarang[i],2);
+			radarang[i] = B_LITTLE16(radarang[i]);
+			radarang[1279-i] = -radarang[i];
+		}
+
+		kclose(fil);
+	} else {
+		engineerrstr = "Failed to load TABLES.DAT!";
+		return 1;
+	}
+#else
     for(i=0;i<2048;i++) {
         sintable[i] = (short)(16384*sin((double)i*3.14159265358979/1024));
         reciptable[i] = divscale30(2048L,i+2048);
@@ -4963,6 +4986,7 @@ static int loadtables(void)
         radarang[i] = (short)(atan(((double)i-639.5)/160)*64*1024/3.14159265358979);
         radarang[1279-i] = -radarang[i];
     }
+#endif
 	calcbritable();
 
 #ifndef __AMIGA__
