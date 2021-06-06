@@ -861,7 +861,7 @@ size_t Bgetsysmemsize(void)
         }
 	
 	return siz;
-#elif (defined(_SC_PAGE_SIZE) || defined(_SC_PAGESIZE)) && defined(_SC_PHYS_PAGES)
+#elif (defined(_SC_PAGE_SIZE) || defined(_SC_PAGESIZE)) && defined(_SC_PHYS_PAGES) && !defined(__AMIGA__)
 	size_t siz = 0x7fffffff;
 	long scpagesiz, scphyspages;
 

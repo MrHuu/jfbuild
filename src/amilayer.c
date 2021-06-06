@@ -1714,10 +1714,12 @@ int handleevents(void)
 }
 
 #ifdef __libnix__
+#if __GNUC__ <= 3
 // don't touch ENV:
 char *getenv(const char *value) { return NULL; }
 // NOTES-3.4.0
 int (putchar)(int c) { return fputc(c,stdout); }
+#endif
 // disable the default CTRL-C handler
 //void __chkabort(void) {}
 // replacement for the bugged ldiv
