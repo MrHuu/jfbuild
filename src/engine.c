@@ -4966,11 +4966,28 @@ static int loadtables(void)
 			sintable[i] = B_LITTLE16(sintable[i]);
 		}
 
+#ifdef ENGINE_19950829
+		// thanks to Ken for helping me to figure this out
+		klseek(fil,1024*4,BSEEK_CUR); // skip tantable
+		short radarangv6[160];
+		for (i = 0; i < 160; i++) {
+			kread(fil,&radarangv6[i],2);
+			radarangv6[i] = B_LITTLE16(radarangv6[i]);
+		}
+		for(i=0;i<640;i++)
+		{
+			int j = i-((1280-320)/2);
+			if (j < 0) j = 0;
+			radarang[i] = radarangv6[j];
+			radarang[1279-i] = -radarang[i];
+		}
+#else
 		for (i = 0; i < 640; i++) {
 			kread(fil,&radarang[i],2);
 			radarang[i] = B_LITTLE16(radarang[i]);
 			radarang[1279-i] = -radarang[i];
 		}
+#endif
 
 		kclose(fil);
 	} else {
