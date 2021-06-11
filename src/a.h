@@ -172,10 +172,11 @@ extern void vlineasm4(REG(d0,int),REG(d1,void *));
 extern void setupmvlineasm(REG(d0,int));
 extern void mvlineasm4(REG(d0,int),REG(d1,void *));
 
-void setupspritevline(void *,int,int,int,int,int);
-void spritevline(int, int, int, int, void *, void *);
-void msetupspritevline(void *,int,int,int,int,int);
-void mspritevline(int,int,int,int,void *,void *);
+// these are not needed with asm
+static inline void setupspritevline(void *a,int b,int c,int d,int e,int f) {}
+static inline void spritevline(int a, int b, int c, int d, void *e, void *f) {}
+static inline void msetupspritevline(void *a,int b,int c,int d,int e,int f) {}
+static inline void mspritevline(int a,int b,int c,int d,void *e,void *f) {}
 
 extern void tsetupspritevline(REG(d0,void *),REG(d1,int),REG(d2,int),REG(d3,int),REG(d4,int),REG(d5,int));
 extern void tspritevline(REG(d0,int),REG(d1,int),REG(d2,int),REG(d3,int),REG(a0,void *),REG(a1,void *));
