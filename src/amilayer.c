@@ -912,11 +912,18 @@ unsigned int getticks(void)
 {
 	// this it can be called before inittimer
 	//return (unsigned int)getusecticks() / 1000;
+#if __GNUC__ <= 3
 	struct DateStamp date;
 	DateStamp(&date);
 	ULONG sec = (date.ds_Days * 60 * 60 * 24) + (date.ds_Minute * 60);
-	ULONG usec = date.ds_Tick * (1000000 / 50);
-	return sec * 1000000 + usec;
+	ULONG msec = date.ds_Tick * (1000 / 50);
+#else
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	ULONG sec = tv.tv_secs;
+	ULONG msec = tv.tv_micro / 1000;
+#endif
+	return sec * 1000 + msec;
 }
 
 //
