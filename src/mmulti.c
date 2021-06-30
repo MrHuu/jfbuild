@@ -71,7 +71,7 @@ struct Library *SocketBase;
 #undef inet_ntop
 STRPTR inet_ntop(LONG af, APTR src, STRPTR dst, LONG size)
 {
-	const char *ptr = (const char *)src;
+	const unsigned char *ptr = (const unsigned char *)src;
 	sprintf(dst, "%u.%u.%u.%u", ptr[0], ptr[1], ptr[2], ptr[3]);
 	return dst;
 }
@@ -137,7 +137,12 @@ static unsigned char pakbuf[MAXPAKSIZ], playerslive[MAXPLAYERS];
 #define FIFSIZ 512 //16384/40 = 6min:49sec
 static int ipak[MAXPLAYERS][FIFSIZ], icnt0[MAXPLAYERS];
 static int opak[MAXPLAYERS][FIFSIZ], ocnt0[MAXPLAYERS], ocnt1[MAXPLAYERS];
+#ifdef __AMIGA__
+#define PAKMEMSIZ 4194304
+static unsigned char *pakmem; static int pakmemi = 1;
+#else
 static unsigned char pakmem[4194304]; static int pakmemi = 1;
+#endif
 
 #define NETPORT 0x5bd9
 static SOCKET mysock = -1;
@@ -171,6 +176,10 @@ void netuninit ()
 		CloseLibrary(SocketBase);
 		SocketBase = NULL;
 	}
+	if (pakmem) {
+		free(pakmem);
+		pakmem = NULL;
+	}
 #endif
 #endif
 	domain = PF_UNSPEC;
@@ -192,6 +201,11 @@ int netinit (int portnum)
 	SocketBase = OpenLibrary("bsdsocket.library", 3);
 	if (!SocketBase) {
 		printf("mmulti error: Unable to open bsdsocket.library\n");
+		return 0;
+	}
+	if ((pakmem = calloc(1, PAKMEMSIZ)) == NULL) {
+		printf("mmulti error: Can't allocate %d bytes for the packet buffer\n", PAKMEMSIZ);
+		netuninit();
 		return 0;
 	}
 #endif
@@ -1071,7 +1085,11 @@ void sendpacket (int other, unsigned char *bufptr, int messleng)
 
 	if (numplayers < 2) return;
 
+#ifdef __AMIGA__
+	if (pakmemi+messleng+2 > PAKMEMSIZ) pakmemi = 1;
+#else
 	if (pakmemi+messleng+2 > (int)sizeof(pakmem)) pakmemi = 1;
+#endif
 	opak[other][ocnt1[other]&(FIFSIZ-1)] = pakmemi;
 	*(short *)&pakmem[pakmemi] = messleng;
 	memcpy(&pakmem[pakmemi+2],bufptr,messleng); pakmemi += messleng+2;
@@ -1268,7 +1286,11 @@ int getpacket (int *retother, unsigned char *bufptr)
 					j = *(int *)&pakbuf[k]; k += 4;
 					if ((j >= icnt0[other]) && (!ipak[other][j&(FIFSIZ-1)]))
 					{
+#ifdef __AMIGA__
+						if (pakmemi+messleng+2 > PAKMEMSIZ) pakmemi = 1;
+#else
 						if (pakmemi+messleng+2 > (int)sizeof(pakmem)) pakmemi = 1;
+#endif
 						ipak[other][j&(FIFSIZ-1)] = pakmemi;
 						*(short *)&pakmem[pakmemi] = messleng;
 						memcpy(&pakmem[pakmemi+2],&pakbuf[k],messleng); pakmemi += messleng+2;
