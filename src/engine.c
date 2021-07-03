@@ -9883,7 +9883,11 @@ void setview(int x1, int y1, int x2, int y2)
 	int i;
 	float xfov;
 
+#ifdef __AMIGA__
+	xfov = widescreen ? ((float)xdim / (float)ydim) / (4.f / 3.f) : 1.f;
+#else
 	xfov = ((float)xdim / (float)ydim) / (4.f / 3.f);
+#endif
 
 	windowx1 = x1; wx1 = (x1<<12);
 	windowy1 = y1; wy1 = (y1<<12);
@@ -10119,8 +10123,12 @@ void setbrightness(int dabrightness, unsigned char *dapal, char noapply)
 	if (!(noapply&4))
 		curbrightness = min(max((int)dabrightness,0),15);
 
+#ifdef __AMIGA__
+	j = curbrightness;
+#else
 	curgamma = 1.0 + ((float)curbrightness / 10.0);
 	if (setgamma(curgamma)) j = curbrightness; else j = 0;
+#endif
 
 	for(k=i=0;i<256;i++)
 	{
