@@ -25,39 +25,6 @@ _muls\1\1\2:
 	mulsAAB d3,d2
 	mulsAAB d5,d4
 
-; d0 = dividend.hi
-; d1 = dividend.lo
-; d2 = divisor
-; -> d0 = quotient
-; -> d1 = remainder
-_divs64_d2d1d0:
-	tst.l    d1
-	bne.b    .fpudivision
-	cmp.l    d0,d2                ; divisor ? dividend.lo
-	bhi.b    .nodivision
-	divul.l    d2,d1:d0            ; 32/32 = 32r:32q
-.nodivision
-	rts
-.fpudivision
-	fmove.l    d1,fp0
-	fmul.s    #4294967296,fp0
-	fmove.l    d0,fp1
-	tst.l    d0
-	bge.b    .skip
-	fadd.s    #4294967296,fp1
-.skip
-	fadd.x    fp1,fp0
-	fdiv.l    d2,fp0
-	fintrz.x    fp0,fp1
-	fmove.l    fp0,d0        ; quotient
-	fsub.x    fp1,fp0
-	fmul.l    d2,fp0
-	fintrz.x    fp0
-	fmove.l    fp0,d1        ; remainder
-	rts
-
-	even
-
 ; divs.l A,B:C
 ; C = dividend.hi
 ; B = dividend.lo
@@ -65,6 +32,14 @@ _divs64_d2d1d0:
 ; -> C = quotient
 divsABC    MACRO
 _divs\1\2\3:
+;	tst.l    \2
+;	bne.b    .fpudivision
+;	cmp.l    \3,\1                ; divisor ? dividend.lo
+;	bhi.b    .nodivision
+;	divul.l    \1,\2:\3            ; 32/32 = 32r:32q
+;.nodivision
+;	rts
+;.fpudivision
 	fmove.l  \2,fp0
 	fmul.s   #4294967296,fp0
 	fmove.l  \3,fp1
@@ -1118,6 +1093,100 @@ _qinterpolatedown16short:
 	move.w  d1,(a0)
 .end
 	movem.l (sp)+,d0-d5/a0
+	rts
+
+	even
+
+;
+; rounding variants for Blood
+;
+
+;-----------------------------------------------------------------------------
+; mulscale16r
+;-----------------------------------------------------------------------------
+	XDEF _mulscale16r
+_mulscale16r:
+	movem.l d1-d3,-(sp)
+
+	ifnd M68060
+		muls.l  d1,d1:d0
+	else
+		bsr _mulsd1d1d0
+	endif
+	; round start
+	add.l   #32768,d0
+	moveq   #0,d2
+	addx.l  d2,d1
+	; round end
+	moveq   #16,d3
+	moveq   #16,d2
+	lsr.l   d3,d0
+	lsl.l   d2,d1
+	or.l    d1,d0
+
+	movem.l (sp)+,d1-d3
+	rts
+
+	even
+
+
+;-----------------------------------------------------------------------------
+; mulscale30r
+;-----------------------------------------------------------------------------
+	XDEF _mulscale30r
+_mulscale30r:
+	move.l  d1,-(sp)
+	move.l  d2,-(sp)
+
+	ifnd M68060
+		muls.l  d1,d1:d0
+	else
+		bsr _mulsd1d1d0
+	endif
+	; round start
+	add.l   #536870912,d0
+	moveq   #0,d2
+	addx.l  d2,d1
+	; round end
+	moveq   #30,d2
+	lsr.l   d2,d0
+	lsl.l   #2,d1
+	or.l    d1,d0
+
+	move.l  (sp)+,d2
+	move.l  (sp)+,d1
+	rts
+
+	even
+
+;-----------------------------------------------------------------------------
+; dmulscale30r
+;-----------------------------------------------------------------------------
+	XDEF _dmulscale30r
+_dmulscale30r:
+	movem.l d1-d3,-(sp)
+
+	ifnd M68060
+		muls.l  d1,d1:d0
+		muls.l  d3,d3:d2
+	else
+		bsr _mulsd1d1d0
+		bsr _mulsd3d3d2
+	endif
+	add.l   d2,d0
+	addx.l  d3,d1
+	; round start
+	add.l   #536870912,d0
+	moveq   #0,d2
+	addx.l  d2,d1
+	; round end
+
+	moveq   #30,d3
+	lsr.l   d3,d0
+	lsl.l   #2,d1
+	or.l    d1,d0
+
+	movem.l (sp)+,d1-d3
 	rts
 
 	even

@@ -3705,6 +3705,11 @@ extern int ASM dmulscale(REG(d0, int eax), REG(d1, int edx), REG(d2, int esi), R
 
 extern int ASM boundmulscale(REG(d0, int a), REG(d1,int d), REG(d2,int c));
 
+// rounding variants for Blood
+extern int ASM mulscale16r(REG(d0, int eax), REG(d1, int edx));
+extern int ASM mulscale30r(REG(d0, int eax), REG(d1, int edx));
+extern int ASM dmulscale30r(REG(d0, int eax), REG(d1, int edx), REG(d2, int esi), REG(d3,int edi));
+
 #else
 
 static inline int scale(int eax, int edx, int ecx) { return dw((qw(eax) * qw(edx)) / qw(ecx)); }
