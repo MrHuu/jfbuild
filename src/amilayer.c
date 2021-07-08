@@ -38,6 +38,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <sys/time.h>
 
 #include "build.h"
 //#include "amilayer.h"
@@ -82,7 +83,7 @@ static struct MsgPort *dispport;
 static int safetochange;
 static ULONG fsMonitorID = INVALID_ID;
 static ULONG fsModeID = INVALID_ID;
-static UBYTE wndPubScreen[32] = {"Workbench"};
+static char wndPubScreen[32] = {"Workbench"};
 
 static unsigned char *frame;
 int xres=-1, yres=-1, bpp=0, fullscreen=0, bytesperline, imageSize;
@@ -247,10 +248,10 @@ int main(int argc, char *argv[])
 		progdir = GetProgramDir();
 	}
 
-	if ((appicon = GetDiskObject(exename))) {
-		STRPTR value;
+	if ((appicon = GetDiskObject((STRPTR)exename))) {
+		char *value;
 
-		if ((value = FindToolType(appicon->do_ToolTypes, "FORCEMODE"))) {
+		if ((value = (char *)FindToolType(appicon->do_ToolTypes, (STRPTR)"FORCEMODE"))) {
 			if (!strcmp(value, "NTSC"))
 				fsMonitorID = NTSC_MONITOR_ID;
 			else if (!strcmp(value, "PAL"))
@@ -269,7 +270,7 @@ int main(int argc, char *argv[])
 				fsMonitorID = DBLPAL_MONITOR_ID;
 		}
 
-		if ((value = FindToolType(appicon->do_ToolTypes, "FORCEID"))) {
+		if ((value = (char *)FindToolType(appicon->do_ToolTypes, (STRPTR)"FORCEID"))) {
 			int id;
 			if (sscanf(value, "%x", &id) == 1) {
 				fsModeID = id;
@@ -277,7 +278,7 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		if ((value = FindToolType(appicon->do_ToolTypes, "PUBSCREEN"))) {
+		if ((value = (char *)FindToolType(appicon->do_ToolTypes, (STRPTR)"PUBSCREEN"))) {
 			strncpy(wndPubScreen, value, sizeof(wndPubScreen));
 		}
 
@@ -996,8 +997,8 @@ static char modeschecked=0;
 void getvalidmodes(void)
 {
 	static int defaultres[][2] = {
-		{1920,1200},{1920,1080},{1600,1200},{1680,1050},{1600,900},{1400,1050},{1440,900},{1366,768},
-		{1280,1024},{1280,960},{1280,800},{1280,720},{1152,864},{1024,768},{800,600},{640,480},
+		{1600,1200},{1400,1050},
+		{1280,1024},{1280,960},{1152,864},{1024,768},{800,600},{640,480},
 		{640,400},{512,384},{480,360},{400,300},{320,240},{320,200},{0,0}
 	};
 	ULONG modeID;
@@ -1068,7 +1069,7 @@ void getvalidmodes(void)
 
 	if (CyberGfxBase && fsMonitorID == (ULONG)INVALID_ID && fsModeID == (ULONG)INVALID_ID) {
 		int bpp = 8;
-		if ((screen = LockPubScreen(wndPubScreen))) {
+		if ((screen = LockPubScreen((STRPTR)wndPubScreen))) {
 			bpp = GetBitMapAttr(screen->RastPort.BitMap, BMA_DEPTH);
 			maxx = screen->Width;
 			maxy = screen->Height;
