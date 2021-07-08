@@ -43,7 +43,12 @@ void loadvoxel(int voxindex) { voxindex=0; }
 int tiletovox[MAXTILES];
 #endif
 int usevoxels = 1;
+#ifdef ENGINE_19960925
+void qloadvoxel(int32_t nVoxel);
+#define kloadvoxel qloadvoxel
+#else
 #define kloadvoxel loadvoxel
+#endif
 
 int novoxmips = 0;
 
@@ -602,7 +607,12 @@ unsigned char palfadedelta = 0;
 //
 static inline int getpalookup(int davis, int dashade)
 {
+#ifdef ENGINE_19960925
+	int32_t qgetpalookup(int32_t a1, int32_t a2);
+	return qgetpalookup(davis, dashade);
+#else
 	return(min(max(dashade+(davis>>8),0),numpalookups-1));
+#endif
 }
 
 
@@ -1104,6 +1114,10 @@ static void prepwall(int z, walltype *wal)
 //
 int animateoffs(short tilenum, short fakevar)
 {
+#ifdef ENGINE_19960925
+	int qanimateoffs(int a1, int a2);
+	return qanimateoffs(tilenum, fakevar);
+#else
 	int i, k, offs;
 
 	offs = 0;
@@ -1127,6 +1141,7 @@ int animateoffs(short tilenum, short fakevar)
 		}
 	}
 	return(offs);
+#endif
 }
 
 
@@ -5074,6 +5089,10 @@ static int loadpalette(void)
 	int lamedukep = 0;
 #endif
 
+#ifdef ENGINE_19960925
+	void qloadpalette();
+	qloadpalette();
+#else
 	if ((fil = kopen4load("palette.dat",0)) < 0) goto badpalette;
 	flen = kfilelength(fil);
 
@@ -5114,12 +5133,14 @@ static int loadpalette(void)
 		kclose(fil);
 		return 1;
 	}
+#endif
 
 	globalpalwritten = palookup[0]; globalpal = 0;
 	setpalookupaddress(globalpalwritten);
 
 	fixtransluscence(transluc);
 
+#ifndef ENGINE_19960925
 	kread(fil,palookup[globalpal],numpalookups<<8);
 #ifdef ENGINE_19950829
 	if (lamedukep)
@@ -5145,6 +5166,7 @@ static int loadpalette(void)
 #endif
 	kread(fil,transluc,65536);
 	kclose(fil);
+#endif
 
 	initfastcolorlookup(30L,59L,11L);
 
@@ -5634,6 +5656,10 @@ void uninitengine(void)
 //
 void initspritelists(void)
 {
+#ifdef ENGINE_19960925
+	void qinitspritelists(void);
+	qinitspritelists();
+#else
 	int i;
 
 	for (i=0;i<MAXSECTORS;i++)     //Init doubly-linked sprite sector lists
@@ -5660,6 +5686,7 @@ void initspritelists(void)
 	}
 	prevspritestat[0] = -1;
 	nextspritestat[MAXSPRITES-1] = -1;
+#endif
 }
 
 
@@ -6306,6 +6333,10 @@ void drawmapview(int dax, int day, int zoome, short ang)
 int loadboard(char *filename, char fromwhere, int *daposx, int *daposy, int *daposz,
 			 short *daang, short *dacursectnum)
 {
+#ifdef ENGINE_19960925
+	int qloadboard(char *filename, char flags, int *daposx, int *daposy, int *daposz, short *daang, short *dacursectnum);
+	return qloadboard(filename, fromwhere, daposx, daposy, daposz, daang, dacursectnum);
+#else
 	short fil, i, numsprites;
 
 	i = strlen(filename)-1;
@@ -6412,6 +6443,7 @@ int loadboard(char *filename, char fromwhere, int *daposx, int *daposy, int *dap
 	guniqhudid = 0;
 
 	return(0);
+#endif
 }
 
 
@@ -8327,8 +8359,13 @@ int setspritez(short spritenum, int newx, int newy, int newz)
 //
 int insertsprite(short sectnum, short statnum)
 {
+#ifdef ENGINE_19960925
+	int qinsertsprite(short nSector, short nStat);
+	return qinsertsprite(sectnum, statnum);
+#else
 	insertspritestat(statnum);
 	return(insertspritesect(sectnum));
+#endif
 }
 
 
@@ -8337,8 +8374,13 @@ int insertsprite(short sectnum, short statnum)
 //
 int deletesprite(short spritenum)
 {
+#ifdef ENGINE_19960925
+	int qdeletesprite(short nSprite);
+	return qdeletesprite(spritenum);
+#else
 	deletespritestat(spritenum);
 	return(deletespritesect(spritenum));
+#endif
 }
 
 
@@ -8347,12 +8389,17 @@ int deletesprite(short spritenum)
 //
 int changespritesect(short spritenum, short newsectnum)
 {
+#ifdef ENGINE_19960925
+	int qchangespritesect(short nSprite, short nSector);
+	return qchangespritesect(spritenum, newsectnum);
+#else
 	if ((newsectnum < 0) || (newsectnum > MAXSECTORS)) return(-1);
 	if (sprite[spritenum].sectnum == newsectnum) return(0);
 	if (sprite[spritenum].sectnum == MAXSECTORS) return(-1);
 	if (deletespritesect(spritenum) < 0) return(-1);
 	insertspritesect(newsectnum);
 	return(0);
+#endif
 }
 
 
@@ -8361,12 +8408,17 @@ int changespritesect(short spritenum, short newsectnum)
 //
 int changespritestat(short spritenum, short newstatnum)
 {
+#ifdef ENGINE_19960925
+	int qchangespritestat(short nSprite, short nSector);
+	return qchangespritestat(spritenum, newstatnum);
+#else
 	if ((newstatnum < 0) || (newstatnum > MAXSTATUS)) return(-1);
 	if (sprite[spritenum].statnum == newstatnum) return(0);
 	if (sprite[spritenum].statnum == MAXSTATUS) return(-1);
 	if (deletespritestat(spritenum) < 0) return(-1);
 	insertspritestat(newstatnum);
 	return(0);
+#endif
 }
 
 
