@@ -512,7 +512,8 @@ HANDLERPROTO(InputHandlerFunc, struct InputEvent *, struct InputEvent *input_eve
 			ie->ie_position.ie_xy.ie_y = 0;
 
 		}
-		else if (ie->ie_Class == IECLASS_NEWMOUSE)
+		//else if (ie->ie_Class == IECLASS_NEWMOUSE)
+		else if (ie->ie_Class == IECLASS_RAWKEY && code >= NM_WHEEL_UP && code <= NM_BUTTON_FOURTH)
 		{
 			// mouse button 4, mouse wheel
 			// up, down, left, right, fourth
@@ -1620,6 +1621,9 @@ int handleevents(void)
 				ULONG qualifier;
 				unsigned char scan;
 				int eatosdinput;
+
+				if (code > MAX_KEYCONV)
+					break;
 
 				qualifier = imsg->Qualifier;
 				scan = keyconv[code];
