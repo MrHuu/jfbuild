@@ -32,6 +32,9 @@
 #include <cybergraphx/cybergraphics.h>
 #include <proto/cybergraphics.h>
 
+#include <devices/gameport.h>
+#include <psxport.h>
+
 #include <SDI_compiler.h>
 #include <SDI_interrupt.h>
 #undef UNUSED
@@ -98,6 +101,22 @@ extern float curgamma;
 static struct MsgPort *inputPort;
 static struct IOStdReq *inputReq;
 static UWORD *pointermem;
+static struct MsgPort *gameport_mp = NULL;
+static struct IOStdReq *gameport_io = NULL;
+static BOOL gameport_is_open = FALSE;
+static struct InputEvent gameport_ie;
+static BYTE gameport_ct;		/* controller type */
+static BOOL analog_centered = FALSE;
+static int analog_clx;
+static int analog_cly;
+static int analog_crx;
+static int analog_cry;
+struct GamePortTrigger gameport_gpt = {
+	GPTF_UPKEYS | GPTF_DOWNKEYS,	/* gpt_Keys */
+	0,				/* gpt_Timeout */
+	1,				/* gpt_XDelta */
+	1				/* gpt_YDelta */
+};
 int inputdevices=0;
 char keystatus[256];
 int keyfifo[KEYFIFOSIZ];
@@ -593,9 +612,60 @@ int initinput(void)
 	mouseacquired = 0;
 	if (LowLevelBase) {
 		inputdevices |= 4; // joystick
-		//joynumbuttons = 11;
 		joynumbuttons = 15;
-		//joynumaxes = 1;
+		joynumaxes = 0;
+	}
+	buildputs("Initialising game controllers\n");
+	if ((gameport_mp = CreateMsgPort())) {
+		if ((gameport_io = (struct IOStdReq *)CreateIORequest(gameport_mp, sizeof(struct IOStdReq)))) {
+			int ix;
+			BYTE gameport_ct;
+			for (ix=0; ix<4; ix++) {
+				if (!OpenDevice((STRPTR)"psxport.device", ix, (struct IORequest *)gameport_io, 0)) {
+					buildprintf("psxport.device unit %d opened.\n", ix);
+					Forbid();
+					gameport_io->io_Command = GPD_ASKCTYPE;
+					gameport_io->io_Length = 1;
+					gameport_io->io_Data = &gameport_ct;
+					DoIO((struct IORequest *)gameport_io);
+					if (gameport_ct == GPCT_NOCONTROLLER) {
+						gameport_ct = GPCT_ALLOCATED;
+						gameport_io->io_Command = GPD_SETCTYPE;
+						gameport_io->io_Length = 1;
+						gameport_io->io_Data = &gameport_ct;
+						DoIO((struct IORequest *)gameport_io);
+
+						Permit();
+
+						gameport_io->io_Command = GPD_SETTRIGGER;
+						gameport_io->io_Length = sizeof(struct GamePortTrigger);
+						gameport_io->io_Data = &gameport_gpt;
+						DoIO((struct IORequest *)gameport_io);
+
+						gameport_io->io_Command = GPD_READEVENT;
+						gameport_io->io_Length = sizeof(struct InputEvent);
+						gameport_io->io_Data = &gameport_ie;
+						SendIO((struct IORequest *)gameport_io);
+						gameport_is_open = TRUE;
+
+						inputdevices |= 4;
+						joynumbuttons = 15;
+						joynumaxes = 6;
+
+						break;
+					} else {
+						Permit();
+						buildprintf("psxport.device unit %d in use.\n", ix);
+						CloseDevice((struct IORequest *)gameport_io);
+					}
+				} else {
+					buildprintf("psxport.device unit %d won't open.\n", ix);
+				}
+			}
+		}
+	}
+	if (LowLevelBase && !gameport_is_open) {
+		buildputs("Using lowlevel.library for joystick input\n");
 	}
 
 	return 0;
@@ -608,8 +678,26 @@ void uninitinput(void)
 {
 	uninitmouse();
 
-	if (pointermem)
-	{
+	if (gameport_is_open) {
+		AbortIO((struct IORequest *)gameport_io);
+		WaitIO((struct IORequest *)gameport_io);
+		BYTE gameport_ct = GPCT_NOCONTROLLER;
+		gameport_io->io_Command = GPD_SETCTYPE;
+		gameport_io->io_Length = 1;
+		gameport_io->io_Data = &gameport_ct;
+		DoIO((struct IORequest *)gameport_io);
+		CloseDevice((struct IORequest *)gameport_io);
+		gameport_is_open = FALSE;
+	}
+	if (gameport_io != NULL) {
+		DeleteIORequest((struct IORequest *)gameport_io);
+		gameport_io = NULL;
+	}
+	if (gameport_mp != NULL) {
+		DeleteMsgPort(gameport_mp);
+		gameport_mp = NULL;
+	}
+	if (pointermem) {
 		FreeVec(pointermem);
 		pointermem = NULL;
 	}
@@ -628,8 +716,7 @@ const char *getkeyname(int num)
 	return NULL;
 }
 
-//static const char *joybnames[] = {"DPad Right", "DPad Left", "DPad Down", "DPad Up", "Play", "Reverse", "Forward", "Green", "Yellow", "Red", "Blue"};
-static const char *buttonnames[15] = {
+static const char *llbuttonnames[15] = {
 	"Dbl Red",
 	"Dbl Blue",
 	"Dbl Green",
@@ -647,18 +734,44 @@ static const char *buttonnames[15] = {
 	"Dbl DPad Right"
 };
 
+static const char *psxbuttonnames[15] = {
+	"Dbl Cross",
+	"Dbl Circle",
+	"Dbl Square",
+	"Dbl Triangle",
+	"Dbl Select",
+	"N/A\0N/A",
+	"Dbl Start",
+	"Dbl L3",
+	"Dbl R3",
+	"Dbl L1",
+	"Dbl R1",
+	"Dbl DPad Up",
+	"Dbl DPad Down",
+	"Dbl DPad Left",
+	"Dbl DPad Right"
+};
+
+static const char *psxaxisnames[6] = {
+	"Left Stick X",
+	"Left Stick Y",
+	"Right Stick X",
+	"Right Stick Y",
+	"L2",
+	"R2",
+};
+
 const char *getjoyname(int what, int num)
 {
 	int button, notclicked;
 	switch (what) {
 		case 0: // axis
-			return "No axes found! Please use the buttons!"; // none
+			return psxaxisnames[num];
 		case 1: // button
-			//return buttonnames[num];
 			notclicked = !(num & 128);
 			button = num & 127;
 			if (button > 15) return NULL;
-			return buttonnames[button] + notclicked * 4;
+			return (gameport_is_open ? psxbuttonnames[button] : llbuttonnames[button]) + notclicked * 4;
 		default:
 			return NULL;
 	}
@@ -1546,28 +1659,80 @@ int setgamma(float gamma)
 
 static void updatejoystick(void)
 {
-	if (!LowLevelBase) return;
-
-	ULONG portState;
-	portState = ReadJoyPort(1);
-
-	// get rid of the gap between the directions and the buttons
-	//joyb = ((portState & JP_BUTTON_MASK) >> (JPB_BUTTON_PLAY - JPB_JOY_UP - 1)) | (portState & JP_DIRECTION_MASK);
-
 	// We use SDL's game controller button order for BUILD:
 	//   A, B, X, Y, Back, (Guide), Start, LThumb, RThumb,
 	//   LShoulder, RShoulder, DPUp, DPDown, DPLeft, DPRight
-	// So we must shuffle the CD32 buttons around.
-	joyb = ((portState & JPF_BUTTON_RED) >> JPB_BUTTON_RED) | // Red - A
-	       (((portState & JPF_BUTTON_BLUE) >> JPB_BUTTON_BLUE) << 1) | // Blue - B
-	       (((portState & JPF_BUTTON_GREEN) >> JPB_BUTTON_GREEN) << 2) | // Green - X
-	       (((portState & JPF_BUTTON_YELLOW) >> JPB_BUTTON_YELLOW) << 3) | // Yellow - Y
-	       (((portState & JPF_BUTTON_PLAY) >> JPB_BUTTON_PLAY) << 6) | // Play -> Start
-	       (((portState & (JPF_BUTTON_FORWARD|JPF_BUTTON_REVERSE)) >> JPB_BUTTON_REVERSE) << 9) | // Reverse,Forward -> LShoulder,RShoulder
-	       (((portState & JPF_JOY_UP) >> JPB_JOY_UP) << 11) | // Up
-	       (((portState & JPF_JOY_DOWN) >> JPB_JOY_DOWN) << 12) | // Down
-	       (((portState & JPF_JOY_LEFT) >> JPB_JOY_LEFT) << 13) | // Left
-	       (((portState & JPF_JOY_RIGHT) >> JPB_JOY_RIGHT) << 14); // Right
+	// So we must shuffle the buttons around.
+	if (gameport_is_open) {
+		// PSX joypad
+		if (GetMsg(gameport_mp) != NULL) {
+			if ((PSX_CLASS(gameport_ie) == PSX_CLASS_JOYPAD) || (PSX_CLASS(gameport_ie) == PSX_CLASS_WHEEL))
+				analog_centered = FALSE;
+
+			if (PSX_CLASS(gameport_ie) != PSX_CLASS_MOUSE) {
+				ULONG gameport_curr = ~PSX_BUTTONS(gameport_ie);
+				// buttons
+				joyb = ((gameport_curr & PSX_CROSS) >> 6) | // A
+					   ((gameport_curr & PSX_CIRCLE) >> 4) | // B
+					   ((gameport_curr & PSX_SQUARE) >> 5) | // X
+					   ((gameport_curr & PSX_TRIANGLE) >> 1) | // Y
+					   ((gameport_curr & PSX_SELECT) >> 4) | // Back
+					   ((gameport_curr & PSX_START) >> 5) | // Start
+					   ((gameport_curr & PSX_L3) >> 2) | // LThumb
+					   ((gameport_curr & PSX_R3) >> 2) | // RThumb
+					   ((gameport_curr & PSX_L1) << 7) | // LShoulder
+					   ((gameport_curr & PSX_R1) << 7) | // RShoulder
+					   ((gameport_curr & PSX_UP) >> 1) | // DPUp
+					   ((gameport_curr & PSX_DOWN) >> 2) | // DPDown
+					   ((gameport_curr & PSX_LEFT) >> 2) | // DPLeft
+					   ((gameport_curr & PSX_RIGHT) << 1); // DPRight
+				// secondary trigger buttons as axes
+				joyaxis[4] = (gameport_curr & PSX_L2) ? 32767 : 0;
+				joyaxis[5] = (gameport_curr & PSX_R2) ? 32767 : 0;
+			}
+
+			if ((PSX_CLASS(gameport_ie) == PSX_CLASS_ANALOG) || (PSX_CLASS(gameport_ie) == PSX_CLASS_ANALOG2) || (PSX_CLASS(gameport_ie) == PSX_CLASS_ANALOG_MODE2)) {
+				int analog_lx = PSX_LEFTX(gameport_ie);
+				int analog_ly = PSX_LEFTY(gameport_ie);
+				int analog_rx = PSX_RIGHTX(gameport_ie);
+				int analog_ry = PSX_RIGHTY(gameport_ie);
+
+				if (!analog_centered) {
+					analog_clx = analog_lx;
+					analog_cly = analog_ly;
+					analog_crx = analog_rx;
+					analog_cry = analog_ry;
+					analog_centered = TRUE;
+				}
+
+				// left analog stick258
+				joyaxis[0] = (analog_lx - analog_clx) << 8;
+				joyaxis[1] = (analog_ly - analog_cly) << 8;
+				// right analog stick
+				joyaxis[2] = (analog_rx - analog_crx) << 8;
+				joyaxis[3] = (analog_ry - analog_cry) << 8;
+			}
+
+			gameport_io->io_Command = GPD_READEVENT;
+			gameport_io->io_Length = sizeof(struct InputEvent);
+			gameport_io->io_Data = &gameport_ie;
+			SendIO((struct IORequest *)gameport_io);
+		}
+	} else if (LowLevelBase) {
+		// CD32 gamepad
+		ULONG portState;
+		portState = ReadJoyPort(1);
+		joyb = ((portState & JPF_BUTTON_RED) >> JPB_BUTTON_RED) | // Red - A
+			   (((portState & JPF_BUTTON_BLUE) >> JPB_BUTTON_BLUE) << 1) | // Blue - B
+			   (((portState & JPF_BUTTON_GREEN) >> JPB_BUTTON_GREEN) << 2) | // Green - X
+			   (((portState & JPF_BUTTON_YELLOW) >> JPB_BUTTON_YELLOW) << 3) | // Yellow - Y
+			   (((portState & JPF_BUTTON_PLAY) >> JPB_BUTTON_PLAY) << 6) | // Play -> Start
+			   (((portState & (JPF_BUTTON_FORWARD|JPF_BUTTON_REVERSE)) >> JPB_BUTTON_REVERSE) << 9) | // Reverse,Forward -> LShoulder,RShoulder
+			   (((portState & JPF_JOY_UP) >> JPB_JOY_UP) << 11) | // Up
+			   (((portState & JPF_JOY_DOWN) >> JPB_JOY_DOWN) << 12) | // Down
+			   (((portState & JPF_JOY_LEFT) >> JPB_JOY_LEFT) << 13) | // Left
+			   (((portState & JPF_JOY_RIGHT) >> JPB_JOY_RIGHT) << 14); // Right
+	}
 }
 
 //
