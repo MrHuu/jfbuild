@@ -304,7 +304,7 @@ int initsystem(void)
 	atexit(uninitsystem);
 
 #ifndef __AROS__
-	CyberGfxBase = OpenLibrary("cybergraphics.library", 41);
+	CyberGfxBase = OpenLibrary((STRPTR)"cybergraphics.library", 41);
 
 	if (SysBase->AttnFlags & AFF_68040)
 		c2p_write_bm = c2p1x1_8_c5_bm_040;
@@ -1622,7 +1622,7 @@ int handleevents(void)
 				unsigned char scan;
 				int eatosdinput;
 
-				if (code > MAX_KEYCONV)
+				if (code > (int)MAX_KEYCONV)
 					break;
 
 				qualifier = imsg->Qualifier;
@@ -1635,7 +1635,7 @@ int handleevents(void)
 					capswaspressed = 5;
 				}
 
-				//buildprintf("rawkey %02x code %02x press %d scan %x\n", imsg->Code, code, press, scan);
+				//OSD_Printf("rawkey %02x qual %04x code %02x press %d scan %x\n", imsg->Code, imsg->Qualifier, code, press, scan);
 				// hook in the osd
 				if (scan == 0) {
 					// Not a key we want, so give it to the OS to handle.
