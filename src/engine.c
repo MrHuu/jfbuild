@@ -11898,6 +11898,9 @@ void setpolymost2dview(void)
 
 void buildprintf(const char *fmt, ...)
 {
+#ifdef __AMIGA__
+	static
+#endif
 	char tmpstr[1024];
 	va_list va, vac;
 

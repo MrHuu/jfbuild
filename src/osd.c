@@ -120,6 +120,9 @@ static void _internal_drawosdchar(int x, int y, char ch, int shade, int pal)
 
 static void _internal_drawosdstr(int x, int y, char *ch, int len, int shade, int pal)
 {
+#ifdef __AMIGA__
+	static
+#endif
 	char st[1024];
 	int colour;
 
@@ -904,6 +907,9 @@ static inline void linefeed(void)
 
 void OSD_Printf(const char *fmt, ...)
 {
+#ifdef __AMIGA__
+	static
+#endif
 	char tmpstr[1024];
 	va_list va;
 
@@ -1041,10 +1047,17 @@ static char *strtoken(char *s, char **ptrptr, int *restart)
 	return start;
 }
 
+#ifdef __AMIGA__
+#define MAXPARMS 256
+#else
 #define MAXPARMS 512
+#endif
 int OSD_Dispatch(const char *cmd)
 {
 	char *workbuf, *wp, *wtp, *state;
+#ifdef __AMIGA__
+	static
+#endif
 	char *parms[MAXPARMS];
 	int  numparms, restart = 0;
 	osdfuncparm_t ofp;
