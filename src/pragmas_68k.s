@@ -95,7 +95,6 @@ _getfpcr:
 ;-----------------------------------------------------------------------------
 	XDEF    _scale
 _scale:
-	move.l  d1,-(sp)
 	move.l  d2,-(sp)
 
 	ifnd M68060
@@ -107,7 +106,6 @@ _scale:
 	endif
 
 	move.l  (sp)+,d2
-	move.l  (sp)+,d1
 	rts
 
 	even
@@ -117,7 +115,8 @@ _scale:
 ;-----------------------------------------------------------------------------
 	XDEF    _mulscale
 _mulscale:
-	movem.l d1-d3,-(sp)
+	move.l  d2,-(sp)
+	move.l  d3,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -130,7 +129,8 @@ _mulscale:
 	lsl.l   d3,d1
 	or.l    d1,d0
 
-	movem.l (sp)+,d1-d3
+	move.l  (sp)+,d3
+	move.l  (sp)+,d2
 	rts
 
 	even
@@ -165,7 +165,8 @@ _divscale:
 ;-----------------------------------------------------------------------------
 	XDEF _dmulscale
 _dmulscale:
-	movem.l d1-d3,-(sp)
+	move.l  d2,-(sp)
+	move.l  d3,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -183,7 +184,8 @@ _dmulscale:
 	lsl.l   d2,d1
 	or.l    d1,d0
 
-	movem.l (sp)+,d1-d3
+	move.l  (sp)+,d3
+	move.l  (sp)+,d2
 	rts
 
 	even
@@ -193,7 +195,7 @@ _dmulscale:
 ;-----------------------------------------------------------------------------
 	XDEF _boundmulscale
 _boundmulscale:
-	movem.l d1-d4,-(sp)
+	movem.l d2-d4,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -217,7 +219,7 @@ _boundmulscale:
 	asr.l   d4,d0
 	eor.l   #$7fffffff,d0
 .skipboundit
-	movem.l (sp)+,d1-d4
+	movem.l (sp)+,d2-d4
 	rts
 
 	even
@@ -228,7 +230,6 @@ _boundmulscale:
 mulscalesA    MACRO
 	XDEF _mulscale\1
 _mulscale\1:
-	move.l  d1,-(sp)
 	move.l  d2,-(sp)
 
 	ifnd M68060
@@ -242,7 +243,6 @@ _mulscale\1:
 	or.l    d1,d0
 
 	move.l  (sp)+,d2
-	move.l  (sp)+,d1
 	rts
 
 	even
@@ -264,7 +264,8 @@ _mulscale\1:
 mulscalesB   MACRO
 	XDEF _mulscale\1
 _mulscale\1:
-	movem.l d1-d3,-(sp)
+	move.l  d2,-(sp)
+	move.l  d3,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -277,7 +278,8 @@ _mulscale\1:
 	lsl.l   d2,d1
 	or.l    d1,d0
 
-	movem.l (sp)+,d1-d3
+	move.l  (sp)+,d3
+	move.l  (sp)+,d2
 	rts
 
 	even
@@ -306,7 +308,6 @@ _mulscale\1:
 mulscalesC   MACRO
 	XDEF _mulscale\1
 _mulscale\1:
-	move.l  d1,-(sp)
 	move.l  d2,-(sp)
 
 	ifnd M68060
@@ -320,7 +321,6 @@ _mulscale\1:
 	or.l    d1,d0
 
 	move.l  (sp)+,d2
-	move.l  (sp)+,d1
 	rts
 
 	even
@@ -341,8 +341,6 @@ _mulscale\1:
 ;-----------------------------------------------------------------------------
 	XDEF _mulscale32
 _mulscale32:
-	move.l  d1,-(sp)
-
 	ifnd M68060
 		muls.l  d1,d1:d0
 	else
@@ -350,7 +348,6 @@ _mulscale32:
 	endif
 	move.l  d1,d0
 
-	move.l  (sp)+,d1
 	rts
 
 	even
@@ -416,7 +413,7 @@ _divscale\1:
 divscalesB MACRO
 	XDEF _divscale\1
 _divscale\1:
-	movem.l d1-d4,-(sp)
+	movem.l d2-d4,-(sp)
 
 	move.l  d0,d2
 	move.l  #\1,d4
@@ -429,7 +426,7 @@ _divscale\1:
 		bsr _divsd1d2d0
 	endif
 
-	movem.l (sp)+,d1-d4
+	movem.l (sp)+,d2-d4
 	rts
 
 	even
@@ -515,7 +512,8 @@ _divscale32:
 dmulscalesA MACRO
 	XDEF _dmulscale\1
 _dmulscale\1:
-	movem.l d1-d3,-(sp)
+	move.l  d2,-(sp)
+	move.l  d3,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -532,7 +530,8 @@ _dmulscale\1:
 	lsl.l   d2,d1
 	or.l    d1,d0
 
-	movem.l (sp)+,d1-d3
+	move.l  (sp)+,d3
+	move.l  (sp)+,d2
 	rts
 
 	even
@@ -554,7 +553,8 @@ _dmulscale\1:
 dmulscalesB MACRO
 	XDEF _dmulscale\1
 _dmulscale\1:
-	movem.l d1-d3,-(sp)
+	move.l  d2,-(sp)
+	move.l  d3,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -572,7 +572,8 @@ _dmulscale\1:
 	lsl.l   d3,d1
 	or.l    d1,d0
 
-	movem.l (sp)+,d1-d3
+	move.l  (sp)+,d3
+	move.l  (sp)+,d2
 	rts
 
 	even
@@ -601,7 +602,8 @@ _dmulscale\1:
 dmulscalesC MACRO
 	XDEF _dmulscale\1
 _dmulscale\1:
-	movem.l d1-d3,-(sp)
+	move.l  d2,-(sp)
+	move.l  d3,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -618,7 +620,8 @@ _dmulscale\1:
 	lsl.l   #32-\1,d1
 	or.l    d1,d0
 
-	movem.l (sp)+,d1-d3
+	move.l  (sp)+,d3
+	move.l  (sp)+,d2
 	rts
 
 	even
@@ -639,7 +642,8 @@ _dmulscale\1:
 ;-----------------------------------------------------------------------------
 	XDEF _dmulscale32
 _dmulscale32:
-	movem.l d1-d3,-(sp)
+	move.l  d2,-(sp)
+	move.l  d3,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -652,7 +656,8 @@ _dmulscale32:
 	addx.l  d3,d1
 	move.l  d1,d0
 
-	movem.l (sp)+,d1-d3
+	move.l  (sp)+,d3
+	move.l  (sp)+,d2
 	rts
 
 	even
@@ -663,7 +668,7 @@ _dmulscale32:
 tmulscalesA MACRO
 	XDEF _tmulscale\1
 _tmulscale\1:
-	movem.l d1-d5,-(sp)
+	movem.l d2-d5,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -683,7 +688,7 @@ _tmulscale\1:
 	lsl.l   d3,d1
 	or.l    d1,d0
 
-	movem.l (sp)+,d1-d5
+	movem.l (sp)+,d2-d5
 	rts
 
 	even
@@ -705,7 +710,7 @@ _tmulscale\1:
 tmulscalesB MACRO
 	XDEF _tmulscale\1
 _tmulscale\1:
-	movem.l d1-d5,-(sp)
+	movem.l d2-d5,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -726,7 +731,7 @@ _tmulscale\1:
 	lsl.l   d3,d1
 	or.l    d1,d0
 
-	movem.l (sp)+,d1-d5
+	movem.l (sp)+,d2-d5
 	rts
 
 	even
@@ -755,7 +760,7 @@ _tmulscale\1:
 tmulscalesC MACRO
 	XDEF _tmulscale\1
 _tmulscale\1:
-	movem.l d1-d5,-(sp)
+	movem.l d2-d5,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -775,7 +780,7 @@ _tmulscale\1:
 	lsr.l   d2,d0
 	or.l    d1,d0
 
-	movem.l (sp)+,d1-d5
+	movem.l (sp)+,d2-d5
 	rts
 
 	even
@@ -796,7 +801,7 @@ _tmulscale\1:
 ;-----------------------------------------------------------------------------
 	XDEF _tmulscale32
 _tmulscale32:
-	movem.l d1-d5,-(sp)
+	movem.l d2-d5,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -813,7 +818,7 @@ _tmulscale32:
 	addx.l  d5,d1
 	move.l  d1,d0
 
-	movem.l (sp)+,d1-d5
+	movem.l (sp)+,d2-d5
 	rts
 
 	even
@@ -823,7 +828,8 @@ _tmulscale32:
 ;-----------------------------------------------------------------------------
 	XDEF    _msqrtasm
 _msqrtasm:
-	movem.l d1-d3,-(sp)
+	move.l  d2,-(sp)
+	move.l  d3,-(sp)
 
 	move.l  #$40000000,d1
 	move.l  #$20000000,d2
@@ -847,7 +853,8 @@ _msqrtasm:
 	lsr.l   #1,d1
 	move.l  d1,d0
 
-	movem.l (sp)+,d1-d3
+	move.l  (sp)+,d3
+	move.l  (sp)+,d2
 	rts
 
 	even
@@ -857,16 +864,10 @@ _msqrtasm:
 ;-----------------------------------------------------------------------------
 	XDEF _clearbuf
 _clearbuf:
-	move.l  a0,-(sp)
-	move.l  d0,-(sp)
-
 .loop
 	move.l  d1,(a0)+
 	subq.l  #1,d0
 	bne.b   .loop
-
-	move.l  (sp)+,d0
-	move.l  (sp)+,a0
 	rts
 
 	even
@@ -876,7 +877,7 @@ _clearbuf:
 ;-----------------------------------------------------------------------------
 	XDEF _clearbufbyte
 _clearbufbyte:
-	movem.l d0/d2/a0,-(sp)
+	move.l d2,-(sp)
 
 	cmp.l   #1,d0
 	blt.b   .end
@@ -923,7 +924,7 @@ _clearbufbyte:
 	beq.b   .end
 	move.b  d1,(a0)
 .end
-	movem.l (sp)+,d0/d2/a0
+	move.l (sp)+,d2
 	rts
 
 	even
@@ -933,8 +934,6 @@ _clearbufbyte:
 ;-----------------------------------------------------------------------------
 	XDEF _copybuf
 _copybuf:
-	movem.l d0/a0/a1,-(sp)
-
 	tst.l   d0
 	beq.b   .end
 .loop
@@ -942,7 +941,6 @@ _copybuf:
 	subq.l  #1,d0
 	bne.b   .loop
 .end
-	movem.l (sp)+,d0/a0/a1
 	rts
 
 	even
@@ -952,8 +950,6 @@ _copybuf:
 ;-----------------------------------------------------------------------------
 	XDEF _copybufbyte
 _copybufbyte:
-	movem.l d0-d1/a0-a1,-(sp)
-
 	cmp.l   #1,d0
 	blt.b   .end
 	bne.b   .cb2
@@ -999,7 +995,6 @@ _copybufbyte:
 	beq.b   .end
 	move.b  (a0),(a1)
 .end
-	movem.l (sp)+,d0-d1/a0-a1
 	rts
 
 	even
@@ -1009,8 +1004,6 @@ _copybufbyte:
 ;-----------------------------------------------------------------------------
 	XDEF _copybufreverse
 _copybufreverse:
-	movem.l d0/a0/a1,-(sp)
-
 	tst.l   d0
 	beq.b   .end
 .loop
@@ -1019,7 +1012,6 @@ _copybufreverse:
 	subq.l  #1,a0
 	bne.b   .loop
 .end
-	movem.l (sp)+,d0/a0/a1
 	rts
 
 	even
@@ -1029,7 +1021,7 @@ _copybufreverse:
 ;-----------------------------------------------------------------------------
 	XDEF _qinterpolatedown16
 _qinterpolatedown16:
-	movem.l d0-d4/a0,-(sp)
+	movem.l d2-d4,-(sp)
 
 	moveq   #16,d3
 	tst.l   d0
@@ -1045,7 +1037,7 @@ _qinterpolatedown16:
 	subq.l  #1,d0
 	bne.b   .q1
 .end
-	movem.l (sp)+,d0-d4/a0
+	movem.l (sp)+,d2-d4
 	rts
 
 	even
@@ -1055,7 +1047,7 @@ _qinterpolatedown16:
 ;-----------------------------------------------------------------------------
 	XDEF _qinterpolatedown16short
 _qinterpolatedown16short:
-	movem.l d0-d5/a0,-(sp)
+	movem.l d2-d5,-(sp)
 
 	tst.l   d0
 	beq.b   .end
@@ -1092,7 +1084,7 @@ _qinterpolatedown16short:
 	lsr.l   d3,d1
 	move.w  d1,(a0)
 .end
-	movem.l (sp)+,d0-d5/a0
+	movem.l (sp)+,d2-d5
 	rts
 
 	even
@@ -1106,7 +1098,8 @@ _qinterpolatedown16short:
 ;-----------------------------------------------------------------------------
 	XDEF _mulscale16r
 _mulscale16r:
-	movem.l d1-d3,-(sp)
+	move.l  d2,-(sp)
+	move.l  d3,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -1124,7 +1117,8 @@ _mulscale16r:
 	lsl.l   d2,d1
 	or.l    d1,d0
 
-	movem.l (sp)+,d1-d3
+	move.l  (sp)+,d3
+	move.l  (sp)+,d2
 	rts
 
 	even
@@ -1135,7 +1129,6 @@ _mulscale16r:
 ;-----------------------------------------------------------------------------
 	XDEF _mulscale30r
 _mulscale30r:
-	move.l  d1,-(sp)
 	move.l  d2,-(sp)
 
 	ifnd M68060
@@ -1154,7 +1147,6 @@ _mulscale30r:
 	or.l    d1,d0
 
 	move.l  (sp)+,d2
-	move.l  (sp)+,d1
 	rts
 
 	even
@@ -1164,7 +1156,8 @@ _mulscale30r:
 ;-----------------------------------------------------------------------------
 	XDEF _dmulscale30r
 _dmulscale30r:
-	movem.l d1-d3,-(sp)
+	move.l  d2,-(sp)
+	move.l  d3,-(sp)
 
 	ifnd M68060
 		muls.l  d1,d1:d0
@@ -1186,7 +1179,8 @@ _dmulscale30r:
 	lsl.l   #2,d1
 	or.l    d1,d0
 
-	movem.l (sp)+,d1-d3
+	move.l  (sp)+,d3
+	move.l  (sp)+,d2
 	rts
 
 	even

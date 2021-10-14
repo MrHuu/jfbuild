@@ -24,31 +24,13 @@
 
 	XDEF    _fixchain
 
-retregs macro
-	movem.l d0-d7/a0-a6,-(sp)
-	endm
-
-putregs macro
-	movem.l (sp)+,a0-a6/d0-d7
-	endm
-
-retregsnod0 macro
-	movem.l d1-d7/a0-a6,-(sp)
-	endm
-
-putregsnod0 macro
-	movem.l (sp)+,a0-a6/d1-d7
-	endm
-
-
-
 
 ;-----------------------------------------------------------------------------
 ; sethlinesizes
+;   clobbers: d3
 ;-----------------------------------------------------------------------------
 	XDEF    _sethlinesizes
 _sethlinesizes:
-	move.l  d0,-(sp)
 	move.l  d3,-(sp)
 
 	neg.b   d0
@@ -63,7 +45,6 @@ _sethlinesizes:
 	move.l  d3,machxbits_edx
 
 	move.l  (sp)+,d3
-	move.l  (sp)+,d0
 	rts
 
 	even
@@ -98,10 +79,11 @@ pal_eax     dc.l    0
 ;   a0 = i4
 ;   a1 = i5
 ;   a2 = i6
+;   clobbers: d2, d3, d5, d6, d7, a2, a3, a4, a5, a6
 ;-----------------------------------------------------------------------------
 	XDEF    _hlineasm4
 _hlineasm4:
-	retregs
+	movem.l d2-d7/a2-a6,-(sp)
 
 	move.l  pal_eax(pc),a3
 
@@ -220,7 +202,7 @@ _hlineasm4:
 	subq.l  #1,d0
 	bne.b   .loop2
 .end
-	putregs
+	movem.l (sp)+,a2-a6/d2-d7
 	rts
 
 	even
@@ -261,12 +243,13 @@ rmach_esi   dc.l    0
 ;   d3 = i4
 ;   d4 = i5
 ;   d5 = i6
+;   clobbers: d2, d3, d4, d5, d6, d7, a2, a3, a4
 ;-----------------------------------------------------------------------------
 	XDEF    _rhlineasm4
 	XDEF    _qrhlineasm4
 _rhlineasm4:
 _qrhlineasm4:
-	retregs
+	movem.l d2-d7/a2-a4,-(sp)
 
 	tst.l   d0
 	ble.b   .end
@@ -297,7 +280,7 @@ _qrhlineasm4:
 	bne.b   .loop
 
 .end
-	putregs
+	movem.l (sp)+,a2-a4/d2-d7
 	rts
 
 	even
@@ -329,10 +312,11 @@ rmmach_esi  dc.l    0
 ;   d3 = i4
 ;   d4 = i5
 ;   d5 = i6
+;   clobbers: d2, d3, d4, d5, d6, d7, a2, a3, a4
 ;-----------------------------------------------------------------------------
 	XDEF    _rmhlineasm4
 _rmhlineasm4:
-	retregs
+	movem.l d2-d7/a2-a4,-(sp)
 
 	tst.l   d0
 	ble.b   .end
@@ -368,7 +352,7 @@ _rmhlineasm4:
 	bne.b   .loop
 
 .end
-	putregs
+	movem.l (sp)+,a2-a4/d2-d7
 	rts
 
 	even
@@ -407,11 +391,9 @@ tmach:  dc.l    0
 ;-----------------------------------------------------------------------------
 	XDEF    _setupvlineasm
 _setupvlineasm
-	move.l  d1,-(sp)
 	move.b  d0,d1
 	and.l   #$1f,d1
 	move.l  d1,mach3_al
-	move.l  (sp)+,d1
 	rts
 
 	even
@@ -429,10 +411,12 @@ mach3_al:   dc.l    0
 ;   d2 = i4
 ;   a1 = i5
 ;   a2 = i6
+;   clobbers: d2, d3, a2 + INT_vlineasm1 d4, d5, d6
 ;-----------------------------------------------------------------------------
 	XDEF    _prevlineasm1
 _prevlineasm1:
-	retregsnod0
+	;movem.l d2-d3/a2,-(sp)
+	movem.l d2-d6/a2,-(sp)
 
 	tst.l   d1
 	bne.b   INT_vlineasm1
@@ -443,7 +427,8 @@ _prevlineasm1:
 	move.b  (a1,d2.l),d2
 	move.b  (a0,d2.l),(a2)
 .end
-	putregsnod0
+	;movem.l (sp)+,a2/d2-d3
+	movem.l (sp)+,a2/d2-d6
 	rts
 
 	even
@@ -457,10 +442,11 @@ _prevlineasm1:
 ;   d2 = vplce
 ;   a1 = bufplce
 ;   a2 = i6
+;   clobbers: d2, d3, d4, d5, d6, a2
 ;-----------------------------------------------------------------------------
 	XDEF    _vlineasm1
 _vlineasm1:
-	retregsnod0
+	movem.l d2-d6/a2,-(sp)
 INT_vlineasm1:
 	move.l  mach3_al(pc),d3
 	moveq   #0,d5
@@ -482,7 +468,7 @@ INT_vlineasm1:
 	bne.b   .loop
 .end
 	move.l  d2,d0
-	putregsnod0
+	movem.l (sp)+,a2/d2-d6
 	rts
 
 	even
@@ -492,10 +478,11 @@ INT_vlineasm1:
 ; ---------
 ;   d0 = i1
 ;   d1 = i2
+;   clobbers: d2, d3, d4, d5, d6, d7, a2, a3, a4, a5, a6
 ;-----------------------------------------------------------------------------
 	XDEF    _vlineasm4
 _vlineasm4:
-	retregs
+	movem.l d2-d7/a2-a6,-(sp)
 
 	lea     _ylookup,a0
 	move.l  (a0,d0.l*4),d0
@@ -566,7 +553,7 @@ _vlineasm4:
 	move.l  a5,8(a2)
 	move.l  a6,12(a2)
 
-	putregs
+	movem.l (sp)+,a2-a6/d2-d7
 	rts
 
 	even
@@ -594,10 +581,11 @@ transmach3_al:  dc.l    0
 ;   d2 = i4
 ;   a1 = i5
 ;   a2 = i6
+;   clobbers: d2, d3, d4, d5, d7, a2, a3
 ;-----------------------------------------------------------------------------
 	XDEF    _tvlineasm1
 _tvlineasm1:
-	retregsnod0
+	movem.l d2-d7/a2-a3,-(sp)
 
 	move.l  tmach(pc),a3
 	;moveq   #0,d7
@@ -624,7 +612,7 @@ _tvlineasm1:
 	bpl.b   .loop
 
 	move.l  d2,d0
-	putregsnod0
+	movem.l (sp)+,a2-a3/d2-d7
 	rts
 
 	even
@@ -648,7 +636,7 @@ tvlineasm1_rev:
 	bpl.b   .loop
 
 	move.l  d2,d0
-	putregsnod0
+	movem.l (sp)+,a2-a3/d2-d7
 	rts
 
 	even
@@ -662,12 +650,10 @@ transrev:   dc.b    0
 ;-----------------------------------------------------------------------------
 	XDEF    _setuptvlineasm2
 _setuptvlineasm2:
-	move.l  d0,-(sp)
 	and.l   #$1f,d0
 	move.l  d0,tran2shr
 	move.l  d1,tran2pal_ebx
 	move.l  d2,tran2pal_ecx
-	move.l  (sp)+,d0
 	rts
 
 	even
@@ -685,10 +671,11 @@ tran2shr:       dc.l    0
 ;   a1 = tran2bufb
 ;   a2 = i5
 ;   d2 = i6
+;   clobbers: d2, d3, d4, d5, d6, d7, a2, a3, a4, a5, a6
 ;-----------------------------------------------------------------------------
 	XDEF    _tvlineasm2
 _tvlineasm2:
-	retregs
+	movem.l d2-d7/a2-a6,-(sp)
 
 	move.l  d1,tran2inca
 	move.l  _asm1,tran2incb
@@ -758,7 +745,7 @@ _tvlineasm2:
 	move.l  a2,_asm1
 	move.l  d0,_asm2
 
-	putregs
+	movem.l (sp)+,a2-a6/d2-d7
 	rts
 
 	even
@@ -815,7 +802,7 @@ tvlineasm2_rev:
 	move.l  a2,_asm1
 	move.l  d0,_asm2
 
-	putregs
+	movem.l (sp)+,a2-a6/d2-d7
 	rts
 
 	even
@@ -868,10 +855,11 @@ machmv:     dc.l    0
 ;   d2=vplce
 ;   a1=bufplce
 ;   a2=p
+;   clobbers: d2, d3, d4, d6, d7, a2
 ;-----------------------------------------------------------------------------
 	XDEF    _mvlineasm1
 _mvlineasm1:
-	retregsnod0
+	movem.l d2-d7/a2,-(sp)
 
 	moveq   #0,d4
 	move.l  _fixchain(pc),d6
@@ -890,7 +878,7 @@ _mvlineasm1:
 	bpl.b   .loop
 
 	move.l  d2,d0
-	putregsnod0
+	movem.l (sp)+,a2/d2-d7
 	rts
 
 	even
@@ -900,10 +888,11 @@ _mvlineasm1:
 ; ----------
 ;   d0=i1
 ;   d1=p
+;   clobbers: d2, d3, d4, d5, d6, d7, a2, a3, a4, a5, a6
 ;-----------------------------------------------------------------------------
 	XDEF    _mvlineasm4
 _mvlineasm4:
-	retregs
+	movem.l d2-d7/a2-a6,-(sp)
 
 	lea     _ylookup,a0
 	move.l  (a0,d0.l*4),d0
@@ -997,17 +986,25 @@ _mvlineasm4:
 	move.l  a5,8(a2)
 	move.l  a6,12(a2)
 
-	putregs
+	movem.l (sp)+,a2-a6/d2-d7
 	rts
 
 	even
 
 ;-----------------------------------------------------------------------------
 ; tsetupspritevline
+; ----------
+;   d0=paloffs
+;   d1=xinc???
+;   d2=yinc???
+;   d3=ysiz
+;   d4=byinc
+;   d5=unused
+;   clobbers: d4, d6, d7
 ;-----------------------------------------------------------------------------
 	XDEF    _tsetupspritevline
 _tsetupspritevline:
-	movem.l d0-d7,-(sp)
+	movem.l d4-d7,-(sp)
 
 	moveq   #16,d7
 	move.l  d0,tspal
@@ -1021,7 +1018,7 @@ _tsetupspritevline:
 	move.l  d6,tsmach_eax3
 	move.l  d2,tsmach_ecx
 
-	movem.l (sp)+,d0-7
+	movem.l (sp)+,d4-d7
 	rts
 
 	even
@@ -1037,16 +1034,17 @@ tsmach_ecx:     dc.l    0
 ;-----------------------------------------------------------------------------
 ; tspritevline
 ; ------------
-;   d0=i1
-;   d1=i2
-;   d2=i3
-;   d3=i4
-;   a0=i5
-;   a1=i6
+;   d0=unused
+;   d1=bx
+;   d2=cnt
+;   d3=by
+;   a0=bufplc
+;   a1=p
+;   clobbers: d2, d3, d4, d5, d6, d7, a2, a3, a4, a5
 ;-----------------------------------------------------------------------------
 	XDEF    _tspritevline
 _tspritevline:
-	retregs
+	movem.l d2-d7/a2-a5,-(sp)
 
 	move.l  tspal(pc),a2
 	move.l  tmach(pc),a3
@@ -1096,7 +1094,7 @@ _tspritevline:
 	add.l   _fixchain(pc),a1
 	bne.b   .loop
 .end
-	putregs
+	movem.l (sp)+,a2-a5/d2-d7
 	rts
 
 	even
@@ -1134,7 +1132,7 @@ tspritevline_rev:
 	add.l   _fixchain(pc),a1
 	bne.b   .loop
 .end
-	putregs
+	movem.l (sp)+,a2-a5/d2-d7
 	rts
 
 	even
@@ -1148,17 +1146,17 @@ tspritevline_rev:
 ;   d3=i4  - unused
 ;   a0=i5
 ;   a1=i6
+;   clobbers: none
 ;-----------------------------------------------------------------------------
 	XDEF    _mhline
 _mhline:
-	retregs
 	move.l  d0,mmach_eax
 	move.l  _asm3,mmach_asm3
 	move.l  _asm1,mmach_asm1
 	move.l  _asm2,mmach_asm2
 
 	move.l  _asm2,d0
-	bra.b   INT_mhlineskipmodify
+	bra.b   _mhlineskipmodify
 
 	even
 
@@ -1178,11 +1176,11 @@ mmach_asm2: dc.l    0
 ;   d3=i4  - unused
 ;   a0=i5
 ;   a1=i6
+;   clobbers: d2, d3, d4, d5, d6, d7, a2, a3, a4, a5
 ;-----------------------------------------------------------------------------
 	XDEF    _mhlineskipmodify
 _mhlineskipmodify:
-	retregs
-INT_mhlineskipmodify
+	movem.l d2-d7/a2-a5,-(sp)
 	move.l  mshift_al(pc),d3
 	lsr.l   #8,d2
 	move.l  mshift_bl(pc),d5
@@ -1210,17 +1208,18 @@ INT_mhlineskipmodify
 	subq.l  #1,d2
 	bpl.b   .loop
 
-	putregs
+	movem.l (sp)+,a2-a5/d2-d7
 	rts
 
 	even
 
 ;-----------------------------------------------------------------------------
 ; msethlineshift
+;   clobbers: d2
 ;-----------------------------------------------------------------------------
 	XDEF    _msethlineshift
 _msethlineshift:
-	movem.l d0-d2,-(sp)
+	move.l d2,-(sp)
 
 	and.l   #$1f,d0
 	and.l   #$1f,d1
@@ -1235,7 +1234,7 @@ _msethlineshift:
 	sub.l   d1,d0
 	move.l  d0,mshift_bl_r
 
-	movem.l (sp)+,d0-d2
+	move.l (sp)+,d2
 	rts
 
 	even
@@ -1255,17 +1254,17 @@ mshift_al:      dc.l    26
 ;   d3=i4  - unused
 ;   a0=i5
 ;   a1=i6
+;   clobbers: none
 ;-----------------------------------------------------------------------------
 	XDEF    _thline
 _thline:
-	retregs
 	move.l  d0,tmach_eax
 	move.l  _asm3,tmach_asm3
 	move.l  _asm1,tmach_asm1
 	move.l  _asm2,tmach_asm2
 
 	move.l  _asm2,d0
-	bra.b   INT_thlineskipmodify
+	bra.b   _thlineskipmodify
 
 	even
 
@@ -1285,11 +1284,11 @@ tmach_asm2: dc.l    0
 ;   d3=i4  - unused
 ;   a0=i5
 ;   a1=i6
+;   clobbers: d2, d3, d4, d5, d6, d7, a2, a3, a4, a5, a6
 ;-----------------------------------------------------------------------------
 	XDEF    _thlineskipmodify
 _thlineskipmodify:
-	retregs
-INT_thlineskipmodify
+	movem.l d2-d7/a2-a6,-(sp)
 	move.l  tshift_al(pc),d3
 	lsr.l   #8,d2
 	move.l  tshift_bl(pc),d5
@@ -1326,7 +1325,7 @@ INT_thlineskipmodify
 	subq.l  #1,d2
 	bpl.b   .loop
 
-	putregs
+	movem.l (sp)+,a2-a6/d2-d7
 	rts
 
 	even
@@ -1357,17 +1356,18 @@ thlineskipmodify_rev:
 	subq.l  #1,d2
 	bpl.b   .loop
 
-	putregs
+	movem.l (sp)+,a2-a6/d2-d7
 	rts
 
 	even
 
 ;-----------------------------------------------------------------------------
 ; tsethlineshift
+;   clobbers: d2
 ;-----------------------------------------------------------------------------
 	XDEF    _tsethlineshift
 _tsethlineshift:
-	movem.l d0-d2,-(sp)
+	move.l d2,-(sp)
 
 	and.l   #$1f,d0
 	and.l   #$1f,d1
@@ -1382,7 +1382,7 @@ _tsethlineshift:
 	sub.l   d1,d0
 	move.l  d0,tshift_bl_r
 
-	movem.l (sp)+,d0-d2
+	move.l (sp)+,d2
 	rts
 
 	even
@@ -1395,10 +1395,12 @@ tshift_al:      dc.l    26
 
 ;-----------------------------------------------------------------------------
 ; setupslopevlin
+;   clobbers: d2, d3
 ;-----------------------------------------------------------------------------
 	XDEF    _setupslopevlin
 _setupslopevlin:
-	retregs
+	move.l  d2,-(sp)
+	move.l  d3,-(sp)
 
 	move.l  d1,slopemach_ebx
 	move.l  d2,slopemach_ecx
@@ -1437,7 +1439,8 @@ _setupslopevlin:
 	fmove.s fp0,asm2_f
 	move.l  asm2_f(pc),_asm2
 
-	putregs
+	move.l  (sp)+,d3
+	move.l  (sp)+,d2
 	rts
 
 	even
@@ -1460,10 +1463,11 @@ asm2_f:         dc.l    0
 ; d0=i4
 ; d1=i5
 ; a4=i6
+;   clobbers: d2, d3, d4, d5, d6, d7, a2, a3, a4, a5, a6
 ;-----------------------------------------------------------------------------
 	XDEF    _slopevlin
 _slopevlin:
-	retregs
+	movem.l d2-d7/a2-a6,-(sp)
 
 	move.l  d0,_asm4
 
@@ -1560,7 +1564,7 @@ _slopevlin:
 	subq.l  #8,_asm4
 	bgt.w   .outerloop
 
-	putregs
+	movem.l (sp)+,a2-a6/d2-d7
 	rts
 
 	even
@@ -1569,10 +1573,11 @@ _slopevlin:
 ; nsqrtasm
 ; --------
 ; d0=param
+;   clobbers: d2, d3, d4
 ;-----------------------------------------------------------------------------
 	XDEF    _nsqrtasm
 _nsqrtasm:
-	movem.l d1-d4/a0/a1,-(sp)
+	movem.l d2-d4,-(sp)
 
 	lea     _shlookup,a0
 	lea     _sqrtable,a1
@@ -1599,7 +1604,7 @@ _nsqrtasm:
 	move.w  (a1,d0.l*2),d0
 	lsr.l   d1,d0
 
-	movem.l (sp)+,d1-d4/a0/a1
+	movem.l (sp)+,d2-d4
 	rts
 
 	even
@@ -1608,10 +1613,11 @@ _nsqrtasm:
 ; krecipasm
 ; ---------
 ; d0=param
+;   clobbers: d2, d3, d4
 ;-----------------------------------------------------------------------------
 	XDEF    _krecipasm
 _krecipasm:
-	movem.l d1-d4/a0,-(sp)
+	movem.l d2-d4,-(sp)
 
 	lea     _reciptable,a0
 	moveq   #10,d3
@@ -1636,7 +1642,7 @@ _krecipasm:
 
 	eor.l   d2,d0
 
-	movem.l (sp)+,d1-d4/a0
+	movem.l (sp)+,d2-d4
 	rts
 
 	even
@@ -1645,10 +1651,11 @@ _krecipasm:
 ; setgotpic
 ; ---------
 ; d0=param
+;   clobbers: a2
 ;-----------------------------------------------------------------------------
 	XDEF    _setgotpic
 _setgotpic:
-	movem.l d0/d1/a0-a2,-(sp)
+	move.l a2,-(sp)
 
 	lea     _walock,a1
 	move.l  d0,d1
@@ -1670,7 +1677,7 @@ _setgotpic:
 .o1
 	or.b    d1,(a0,d0.l)
 
-	movem.l (sp)+,d0/d1/a0-a2
+	move.l (sp)+,a2
 	rts
 
 	even
@@ -1682,10 +1689,12 @@ _setgotpic:
 ; d1=i2
 ; d2=i3
 ; d3=i4
+;   clobbers: d2, d3
 ;-----------------------------------------------------------------------------
 	XDEF    _getclipmask
 _getclipmask:
-	movem.l d1-d3,-(sp)
+	move.l  d2,-(sp)
+	move.l  d3,-(sp)
 
 	and.l   #$80000000,d0
 	rol.l   #1,d0
@@ -1705,7 +1714,8 @@ _getclipmask:
 
 	eor.l   d1,d0
 
-	movem.l (sp)+,d1-d3
+	move.l  (sp)+,d3
+	move.l  (sp)+,d2
 	rts
 
 	even
