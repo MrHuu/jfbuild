@@ -175,7 +175,7 @@ ifeq ($(RENDERTYPE),WIN)
 endif
 ifeq ($(RENDERTYPE),AMIGA)
 	ENGINEOBJS+= $(SRC)/amilayer.$o
-	ENGINEOBJS+= $(SRC)/c2p1x1_8_c5_bm.o $(SRC)/c2p1x1_8_c5_bm_040.o $(SRC)/pragmas_68k.o $(SRC)/a_68k.o
+	ENGINEOBJS+= $(SRC)/c2p1x1_8_c5_bm.o $(SRC)/c2p1x1_8_c5_bm_040.o $(SRC)/a_68k.o
 endif
 
 ifneq (0,$(EFENCE))

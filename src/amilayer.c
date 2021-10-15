@@ -137,8 +137,8 @@ void (*joypresscallback)(int,int) = 0;
 static void c2p_write_bm(WORD chunkyx, WORD chunkyy, WORD offsx, WORD offsy, APTR chunkyscreen, struct BitMap *bitmap) {}
 #else
 static ULONG oldFPCR = -1;
-extern ULONG ASM getfpcr(void);
-extern void ASM setfpcr(REG(d0,ULONG val));
+//extern ULONG ASM getfpcr(void);
+//extern void ASM setfpcr(REG(d0,ULONG val));
 extern void ASM c2p1x1_8_c5_bm(REG(d0, WORD chunkyx), REG(d1, WORD chunkyy), REG(d2, WORD offsx), REG(d3, WORD offsy), REG(a0, APTR chunkyscreen), REG(a1, struct BitMap *bitmap));
 extern void ASM c2p1x1_8_c5_bm_040(REG(d0, WORD chunkyx), REG(d1, WORD chunkyy), REG(d2, WORD offsx), REG(d3, WORD offsy), REG(a0, APTR chunkyscreen), REG(a1, struct BitMap *bitmap));
 typedef void ASM (*c2p_write_bm_func)(REG(d0, WORD chunkyx), REG(d1, WORD chunkyy), REG(d2, WORD offsx), REG(d3, WORD offsy), REG(a0, APTR chunkyscreen), REG(a1, struct BitMap *bitmap));

@@ -100,11 +100,7 @@ int artsize = 0, cachesize = 0;
 int editorgridextent = 131072;
 
 static short radarang[1280], radarang2[MAXXDIM];
-#ifdef __AMIGA__
-unsigned short sqrtable[4096], shlookup[4096+256];
-#else
 static unsigned short sqrtable[4096], shlookup[4096+256];
-#endif
 #ifdef ENGINE_19950829
 static unsigned short sqrtable_old[2048];
 #endif
@@ -385,12 +381,124 @@ static inline int getclipmask(int a, int b, int c, int d)
 
 #elif defined(__AMIGA__)
 
-#include <SDI_compiler.h>
+//
+// written by Dante/Oxyron
+//
 
-extern int ASM nsqrtasm(REG(d0,unsigned int));
-extern int ASM krecipasm(REG(d0,int));
-extern int ASM getclipmask(REG(d0,int),REG(d1,int),REG(d2,int),REG(d3,int));
-extern int ASM msqrtasm(REG(d0,int b));
+static inline int nsqrtasm(int eax)
+{
+	register int _eax asm("d0") = eax;
+	asm volatile (
+		"lea     _shlookup,a0" "\n\t"
+		"lea     _sqrtable,a1" "\n\t"
+		"moveq   #12,d3" "\n\t"
+		"moveq   #24,d4" "\n\t"
+		"move.l  d0,d2" "\n\t"
+		"move.l  d0,d1" "\n\t"
+		"and.l   #4278190080,d2" "\n\t"
+		"beq.b   1f" "\n\t"
+		"lsr.l   d4,d1" "\n\t"
+		"move.w  8192(a0,d1.l*2),d2" "\n\t"
+		"bra.b   2f" "\n\t"
+		"1:" "\n\t"
+		"lsr.l   d3,d1" "\n\t"
+		"move.w  (a0,d1.l*2),d2" "\n\t"
+		"2:" "\n\t"
+		"move.w  d2,d1" "\n\t"
+		"and.w   #31,d2" "\n\t"
+		"lsr.w   #8,d1" "\n\t"
+		"lsr.l   d2,d0" "\n\t"
+		"move.w  (a1,d0.l*2),d0" "\n\t"
+		"lsr.l   d1,d0"
+		: "=r" (_eax)
+		: "r" (_eax)
+		: "d1", "d2", "d3", "d4", "a0", "a1", "cc", "memory"
+	);
+	return _eax;
+}
+
+static inline int msqrtasm(int ecx)
+{
+	register int _ecx asm("d0") = ecx;
+	asm volatile (
+		"move.l  #1073741824,d1" "\n\t"
+		"move.l  #536870912,d2" "\n\t"
+		"1:" "\n\t" // begit
+		"cmp.l   d1,d0" "\n\t"
+		"blt.b   2f" "\n\t"
+		"sub.l   d1,d0" "\n\t"
+		"move.l  d2,d3" "\n\t"
+		"lsl.l   #2,d3" "\n\t"
+		"add.l   d3,d1" "\n\t"
+		"2:" "\n\t" // skip
+		"sub.l   d2,d1" "\n\t"
+		"lsr.l   #1,d1" "\n\t"
+		"lsr.l   #2,d2" "\n\t"
+		"bne.b   1b" "\n\t"
+		"cmp.l   d1,d0" "\n\t"
+		"bcs.b   3f" "\n\t"
+		"addq.l  #1,d1" "\n\t"
+		"3:" "\n\t" // fini
+		"lsr.l   #1,d1" "\n\t"
+		"move.l  d1,d0"
+		: "=r" (_ecx)
+		: "r" (_ecx)
+		: "d1", "d2", "d3", "a0", "cc", "memory"
+	);
+	return _ecx;
+}
+
+static inline int krecipasm(int eax)
+{
+	register int _eax asm("d0") = eax;
+	asm volatile (
+		"lea     _reciptable,a0" "\n\t"
+		"moveq   #10,d3" "\n\t"
+		"fmove.l d0,fp0" "\n\t"
+		"moveq   #23,d4" "\n\t"
+		"fmove.s fp0,d1" "\n\t"
+		"add.l   d0,d0" "\n\t"
+		"subx.l  d2,d2" "\n\t"
+		"move.l  d1,d0" "\n\t"
+		"and.l   #8384512,d0" "\n\t"
+		"sub.l   #1065353216,d1" "\n\t"
+		"lsr.l   d3,d0" "\n\t"
+		"lsr.l   d4,d1" "\n\t"
+		"move.l  (a0,d0.l),d0" "\n\t"
+		"lsr.l   d1,d0" "\n\t"
+		"eor.l   d2,d0"
+		: "=r" (_eax)
+		: "r" (_eax)
+		: "fp0", "d1", "d2", "d3", "d4", "a0", "cc", "memory"
+	);
+	return _eax;
+}
+
+static inline int getclipmask(int eax, int ebx, int ecx, int edx)
+{
+	register int _eax asm("d0") = eax;
+	register int _ebx asm("d1") = ebx;
+	register int _ecx asm("d2") = ecx;
+	register int _edx asm("d3") = edx;
+	asm volatile (
+		"and.l   #2147483648,d0" "\n\t"
+		"rol.l   #1,d0" "\n\t"
+		"add.l   d1,d1" "\n\t"
+		"addx.l  d0,d0" "\n\t"
+		"add.l   d2,d2" "\n\t"
+		"addx.l  d0,d0" "\n\t"
+		"add.l   d3,d3" "\n\t"
+		"addx.l  d0,d0" "\n\t"
+		"move.l  d0,d1" "\n\t"
+		"lsl.l   #4,d1" "\n\t"
+		"or.b    #240,d0" "\n\t"
+		"eor.l   d1,d0"
+		: "=r" (_eax), "=r" (_ebx), "=r" (_ecx), "=r" (_edx)
+		: "r" (_eax), "r" (_ebx), "r" (_ecx), "r" (_edx)
+		: "cc"
+	);
+	return _eax;
+}
 
 #else	// __GNUC__ && __i386__
 
