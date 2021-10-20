@@ -3635,13 +3635,13 @@ static __inline void swapchar2(void *a, void *b, int s)
 static inline void setfpcr(int val)
 {
 	register int _val asm("d0") = val;
-	asm volatile ("fmove.l d0,fpcr" : : "r" (_val) : );
+	asm volatile ("fmove.l d0,fpcr" : : "r" (_val) );
 }
 
 static inline int getfpcr(void)
 {
 	register int _val asm("d0");
-	asm volatile ("fmove.l fpcr,d0" : "=r" (_val) : "r" (_val) : );
+	asm volatile ("fmove.l fpcr,d0" : "=r" (_val) : "r" (_val) );
 	return _val;
 }
 
