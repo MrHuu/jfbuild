@@ -83,7 +83,7 @@ ENGINEOBJS+= \
 	$(SRC)/defs.$o \
 	$(SRC)/engine.$o \
 	$(SRC)/kplib.$o \
-	$(SRC)/mmulti_null.$o \
+	$(SRC)/mmulti.$o \
 	$(SRC)/osd.$o \
 	$(SRC)/pragmas.$o \
 	$(SRC)/scriptfile.$o \
