@@ -3691,6 +3691,7 @@ static inline int getfpcr(void)
 //
 
 #define MULSCALESA(x) \
+	static inline int mulscale##x(int eax, int edx) __attribute__((always_inline)); \
 	static inline int mulscale##x(int eax, int edx) \
 	{ \
 		register int _eax asm("d0") = eax; \
@@ -3718,6 +3719,7 @@ MULSCALESA(7)
 MULSCALESA(8)
 
 #define MULSCALESB(x) \
+	static inline int mulscale##x(int eax, int edx) __attribute__((always_inline)); \
 	static inline int mulscale##x(int eax, int edx) \
 	{ \
 		register int _eax asm("d0") = eax; \
@@ -3753,6 +3755,7 @@ MULSCALESB(22)
 MULSCALESB(23)
 
 #define MULSCALESC(x) \
+	static inline int mulscale##x(int eax, int edx) __attribute__((always_inline)); \
 	static inline int mulscale##x(int eax, int edx) \
 	{ \
 		register int _eax asm("d0") = eax; \
@@ -3779,6 +3782,7 @@ MULSCALESC(29)
 MULSCALESC(30)
 MULSCALESC(31)
 
+static inline int mulscale32(int eax, int edx) __attribute__((always_inline));
 static inline int mulscale32(int eax, int edx)
 {
 	register int _eax asm("d0") = eax;
@@ -3793,6 +3797,7 @@ static inline int mulscale32(int eax, int edx)
 	return _eax;
 }
 
+static inline int divscale1(int eax, int ebx) __attribute__((always_inline));
 static inline int divscale1(int eax, int ebx)
 {
 	register int _eax asm("d0") = eax;
@@ -3809,6 +3814,7 @@ static inline int divscale1(int eax, int ebx)
 }
 
 #define DIVSCALESA(x) \
+	static inline int divscale##x(int eax, int ebx) __attribute__((always_inline)); \
 	static inline int divscale##x(int eax, int ebx) \
 	{ \
 		register int _eax asm("d0") = eax; \
@@ -3835,6 +3841,7 @@ DIVSCALESA(7)
 DIVSCALESA(8)
 
 #define DIVSCALESB(x) \
+	static inline int divscale##x(int eax, int ebx) __attribute__((always_inline)); \
 	static inline int divscale##x(int eax, int ebx) \
 	{ \
 		register int _eax asm("d0") = eax; \
@@ -3871,6 +3878,7 @@ DIVSCALESB(23)
 
 // TODO 25-31 overflow
 #define DIVSCALESC(x) \
+	static inline int divscale##x(int eax, int ebx) __attribute__((always_inline)); \
 	static inline int divscale##x(int eax, int ebx) \
 	{ \
 		register int _eax asm("d0") = eax; \
@@ -3898,6 +3906,7 @@ DIVSCALESC(30)
 DIVSCALESC(31)
 
 // TODO overflow
+static inline int divscale32(int eax, int ebx) __attribute__((always_inline));
 static inline int divscale32(int eax, int ebx)
 {
 	register int _eax asm("d0") = eax;
@@ -3914,6 +3923,7 @@ static inline int divscale32(int eax, int ebx)
 }
 
 #define DMULSCALESA(x) \
+	static inline int dmulscale##x(int eax, int edx, int esi, int edi) __attribute__((always_inline)); \
 	static inline int dmulscale##x(int eax, int edx, int esi, int edi) \
 	{ \
 		register int _eax asm("d0") = eax; \
@@ -3946,6 +3956,7 @@ DMULSCALESA(7)
 DMULSCALESA(8)
 
 #define DMULSCALESB(x) \
+	static inline int dmulscale##x(int eax, int edx, int esi, int edi) __attribute__((always_inline)); \
 	static inline int dmulscale##x(int eax, int edx, int esi, int edi) \
 	{ \
 		register int _eax asm("d0") = eax; \
@@ -3986,6 +3997,7 @@ DMULSCALESB(22)
 DMULSCALESB(23)
 
 #define DMULSCALESC(x) \
+	static inline int dmulscale##x(int eax, int edx, int esi, int edi) __attribute__((always_inline)); \
 	static inline int dmulscale##x(int eax, int edx, int esi, int edi) \
 	{ \
 		register int _eax asm("d0") = eax; \
@@ -4017,6 +4029,7 @@ DMULSCALESC(29)
 DMULSCALESC(30)
 DMULSCALESC(31)
 
+static inline int dmulscale32(int eax, int edx, int esi, int edi) __attribute__((always_inline));
 static inline int dmulscale32(int eax, int edx, int esi, int edi)
 {
 	register int _eax asm("d0") = eax;
@@ -4037,6 +4050,7 @@ static inline int dmulscale32(int eax, int edx, int esi, int edi)
 }
 
 #define TMULSCALESA(x) \
+	static inline int tmulscale##x(int eax, int edx, int ebx, int ecx, int esi, int edi) __attribute__((always_inline)); \
 	static inline int tmulscale##x(int eax, int edx, int ebx, int ecx, int esi, int edi) \
 	{ \
 		register int _eax asm("d0") = eax; \
@@ -4074,6 +4088,7 @@ TMULSCALESA(7)
 TMULSCALESA(8)
 
 #define TMULSCALESB(x) \
+	static inline int tmulscale##x(int eax, int edx, int ebx, int ecx, int esi, int edi) __attribute__((always_inline)); \
 	static inline int tmulscale##x(int eax, int edx, int ebx, int ecx, int esi, int edi) \
 	{ \
 		register int _eax asm("d0") = eax; \
@@ -4119,6 +4134,7 @@ TMULSCALESB(22)
 TMULSCALESB(23)
 
 #define TMULSCALESC(x) \
+	static inline int tmulscale##x(int eax, int edx, int ebx, int ecx, int esi, int edi) __attribute__((always_inline)); \
 	static inline int tmulscale##x(int eax, int edx, int ebx, int ecx, int esi, int edi) \
 	{ \
 		register int _eax asm("d0") = eax; \
@@ -4155,6 +4171,7 @@ TMULSCALESC(29)
 TMULSCALESC(30)
 TMULSCALESC(31)
 
+static inline int tmulscale32(int eax, int edx, int ebx, int ecx, int esi, int edi) __attribute__((always_inline));
 static inline int tmulscale32(int eax, int edx, int ebx, int ecx, int esi, int edi)
 {
 	register int _eax asm("d0") = eax;
@@ -4243,6 +4260,7 @@ static inline int sqr(int eax) { return (eax) * (eax); }
 
 #if defined __AMIGA__
 
+static inline int scale(int eax, int edx, int ecx) __attribute__((always_inline));
 static inline int scale(int eax, int edx, int ecx)
 {
 	register int _eax asm("d0") = eax;
@@ -4253,11 +4271,12 @@ static inline int scale(int eax, int edx, int ecx)
 		DIVSL(d2,d1,d0)
 		: "=r" (_eax), "=r" (_edx)
 		: "r" (_eax), "r" (_edx), "r" (_ecx)
-		: "cc"
+		: DIVSL_CLOBBER "cc"
 	);
 	return _eax;
 }
 
+static inline int mulscale(int eax, int edx, int ecx) __attribute__((always_inline));
 static inline int mulscale(int eax, int edx, int ecx)
 {
 	register int _eax asm("d0") = eax;
@@ -4272,11 +4291,12 @@ static inline int mulscale(int eax, int edx, int ecx)
 		"or.l     d1,d0"
 		: "=r" (_eax), "=r" (_edx)
 		: "r" (_eax), "r" (_edx), "r" (_ecx)
-		: "d3", "cc"
+		: MULSL_CLOBBER "d3", "cc"
 	);
 	return _eax;
 }
 
+static inline int divscale(int eax, int ebx, int ecx) __attribute__((always_inline));
 static inline int divscale(int eax, int ebx, int ecx)
 {
 	register int _eax asm("d0") = eax;
@@ -4291,11 +4311,12 @@ static inline int divscale(int eax, int ebx, int ecx)
 		DIVSL(d1,d3,d0)
 		: "=r" (_eax), "=r" (_ebx), "=r" (_ecx)
 		: "r" (_eax), "r" (_ebx), "r" (_ecx)
-		: "d3", "cc"
+		: DIVSL_CLOBBER "d3", "cc"
 	);
 	return _eax;
 }
 
+static inline int dmulscale(int eax, int edx, int esi, int edi, int ecx) __attribute__((always_inline));
 static inline int dmulscale(int eax, int edx, int esi, int edi, int ecx)
 {
 	register int _eax asm("d0") = eax;
@@ -4315,11 +4336,12 @@ static inline int dmulscale(int eax, int edx, int esi, int edi, int ecx)
 		"or.l    d1,d0"
 		: "=r" (_eax), "=r" (_edx), "=r" (_esi), "=r" (_edi)
 		: "r" (_eax), "r" (_edx), "r" (_esi), "r" (_edi), "r" (_ecx)
-		: "cc"
+		: MULSL_CLOBBER "cc"
 	);
 	return _eax;
 }
 
+static inline int boundmulscale(int eax, int edx, int ecx) __attribute__((always_inline));
 static inline int boundmulscale(int eax, int edx, int ecx)
 {
 	register int _eax asm("d0") = eax;
@@ -4346,12 +4368,13 @@ static inline int boundmulscale(int eax, int edx, int ecx)
 		"2:"
 		: "=r" (_eax), "=r" (_edx)
 		: "r" (_eax), "r" (_edx), "r" (_ecx)
-		: "d3", "d4", "cc"
+		: MULSL_CLOBBER "d3", "d4", "cc"
 	);
 	return _eax;
 }
 
 // rounding variants for Blood
+static inline int mulscale16r(int eax, int edx) __attribute__((always_inline));
 static inline int mulscale16r(int eax, int edx)
 {
 	register int _eax asm("d0") = eax;
@@ -4373,6 +4396,7 @@ static inline int mulscale16r(int eax, int edx)
 	return _eax;
 }
 
+static inline int mulscale30r(int eax, int edx) __attribute__((always_inline));
 static inline int mulscale30r(int eax, int edx)
 {
 	register int _eax asm("d0") = eax;
@@ -4393,6 +4417,7 @@ static inline int mulscale30r(int eax, int edx)
 	return _eax;
 }
 
+static inline int dmulscale30r(int eax, int edx, int esi, int edi) __attribute__((always_inline));
 static inline int dmulscale30r(int eax, int edx, int esi, int edi)
 {
 	register int _eax asm("d0") = eax;
