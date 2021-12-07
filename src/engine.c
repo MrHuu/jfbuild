@@ -387,35 +387,34 @@ static inline int getclipmask(int a, int b, int c, int d)
 
 static inline int nsqrtasm(int eax)
 {
-	int tmpd1, tmpd2, tmpd3, tmpd4;
-	void *tmpa0, *tmpa1;
+	register int _eax asm("d0") = eax;
 	asm volatile (
-		"lea     _shlookup,%5" "\n\t"
-		"lea     _sqrtable,%6" "\n\t"
-		"moveq   #12,%3" "\n\t"
-		"moveq   #24,%4" "\n\t"
-		"move.l  %0,%2" "\n\t"
-		"move.l  %0,%1" "\n\t"
-		"and.l   #4278190080,%2" "\n\t"
+		"lea     _shlookup,a0" "\n\t"
+		"lea     _sqrtable,a1" "\n\t"
+		"moveq   #12,d3" "\n\t"
+		"moveq   #24,d4" "\n\t"
+		"move.l  d0,d2" "\n\t"
+		"move.l  d0,d1" "\n\t"
+		"and.l   #4278190080,d2" "\n\t"
 		"beq.b   1f" "\n\t"
-		"lsr.l   %4,%1" "\n\t"
-		"move.w  8192(%5,%1.l*2),%2" "\n\t"
+		"lsr.l   d4,d1" "\n\t"
+		"move.w  8192(a0,d1.l*2),d2" "\n\t"
 		"bra.b   2f" "\n\t"
 		"1:" "\n\t"
-		"lsr.l   %3,%1" "\n\t"
-		"move.w  (%5,%1.l*2),%2" "\n\t"
+		"lsr.l   d3,d1" "\n\t"
+		"move.w  (a0,d1.l*2),d2" "\n\t"
 		"2:" "\n\t"
-		"move.w  %2,%1" "\n\t"
-		"and.w   #31,%2" "\n\t"
-		"lsr.w   #8,%1" "\n\t"
-		"lsr.l   %2,%0" "\n\t"
-		"move.w  (%6,%0.l*2),%0" "\n\t"
-		"lsr.l   %1,%0"
-		: "+d" (eax), "=d" (tmpd1), "=d" (tmpd2), "=d" (tmpd3), "=d" (tmpd4), "=a" (tmpa0), "=a" (tmpa1)
-		:
-		: "cc", "memory"
+		"move.w  d2,d1" "\n\t"
+		"and.w   #31,d2" "\n\t"
+		"lsr.w   #8,d1" "\n\t"
+		"lsr.l   d2,d0" "\n\t"
+		"move.w  (a1,d0.l*2),d0" "\n\t"
+		"lsr.l   d1,d0"
+		: "=r" (_eax)
+		: "r" (_eax)
+		: "d1", "d2", "d3", "d4", "a0", "a1", "cc", "memory"
 	);
-	return eax;
+	return _eax;
 }
 
 static inline int msqrtasm(int ecx)
@@ -451,30 +450,28 @@ static inline int msqrtasm(int ecx)
 
 static inline int krecipasm(int eax)
 {
-	float tmpfp0;
-	int tmpd1, tmpd2, tmpd3, tmpd4;
-	void *tmpa0;
+	register int _eax asm("d0") = eax;
 	asm volatile (
-		"lea     _reciptable,%6" "\n\t"
-		"moveq   #10,%3" "\n\t"
-		"fmove.l %0,%5" "\n\t"
-		"moveq   #23,%4" "\n\t"
-		"fmove.s %5,%1" "\n\t"
-		"add.l   %0,%0" "\n\t"
-		"subx.l  %2,%2" "\n\t"
-		"move.l  %1,%0" "\n\t"
-		"and.l   #8384512,%0" "\n\t"
-		"sub.l   #1065353216,%1" "\n\t"
-		"lsr.l   %3,%0" "\n\t"
-		"lsr.l   %4,%1" "\n\t"
-		"move.l  (%6,%0.l),%0" "\n\t"
-		"lsr.l   %1,%0" "\n\t"
-		"eor.l   %2,%0"
-		: "+d" (eax), "=d" (tmpd1), "=d" (tmpd2), "=d" (tmpd3), "=d" (tmpd4), "=f" (tmpfp0), "=a" (tmpa0)
-		:
-		: "cc", "memory"
+		"lea     _reciptable,a0" "\n\t"
+		"moveq   #10,d3" "\n\t"
+		"fmove.l d0,fp0" "\n\t"
+		"moveq   #23,d4" "\n\t"
+		"fmove.s fp0,d1" "\n\t"
+		"add.l   d0,d0" "\n\t"
+		"subx.l  d2,d2" "\n\t"
+		"move.l  d1,d0" "\n\t"
+		"and.l   #8384512,d0" "\n\t"
+		"sub.l   #1065353216,d1" "\n\t"
+		"lsr.l   d3,d0" "\n\t"
+		"lsr.l   d4,d1" "\n\t"
+		"move.l  (a0,d0.l),d0" "\n\t"
+		"lsr.l   d1,d0" "\n\t"
+		"eor.l   d2,d0"
+		: "=r" (_eax)
+		: "r" (_eax)
+		: "fp0", "d1", "d2", "d3", "d4", "a0", "cc", "memory"
 	);
-	return eax;
+	return _eax;
 }
 
 static inline int getclipmask(int eax, int ebx, int ecx, int edx)

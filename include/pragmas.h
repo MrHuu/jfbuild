@@ -3694,18 +3694,19 @@ static inline int getfpcr(void)
 	static inline int mulscale##x(int eax, int edx) __attribute__((always_inline)); \
 	static inline int mulscale##x(int eax, int edx) \
 	{ \
-		int tmpd2; \
+		register int _eax asm("d0") = eax; \
+		register int _edx asm("d1") = edx; \
 		asm volatile ( \
-			MULSL(%1,%0) "\n\t" \
-			"moveq   #32-" #x ",%2" "\n\t" \
-			"lsr.l   #" #x ",%0" "\n\t" \
-			"lsl.l   %2,%1" "\n\t" \
-			"or.l    %1,%0" \
-			: "+d" (eax), "+d" (edx), "=d" (tmpd2) \
-			: \
-			: MULSL_CLOBBER "cc" \
+			MULSL(d1,d0) "\n\t" \
+			"moveq   #32-" #x ",d2" "\n\t" \
+			"lsr.l   #" #x ",d0" "\n\t" \
+			"lsl.l   d2,d1" "\n\t" \
+			"or.l    d1,d0" \
+			: "=r" (_eax), "=r" (_edx) \
+			: "r" (_eax), "r" (_edx) \
+			: MULSL_CLOBBER "d2", "cc" \
 		); \
-		return eax; \
+		return _eax; \
 	}
 
 MULSCALESA(1)
@@ -3721,19 +3722,20 @@ MULSCALESA(8)
 	static inline int mulscale##x(int eax, int edx) __attribute__((always_inline)); \
 	static inline int mulscale##x(int eax, int edx) \
 	{ \
-		int tmpd2, tmpd3; \
+		register int _eax asm("d0") = eax; \
+		register int _edx asm("d1") = edx; \
 		asm volatile ( \
-			MULSL(%1,%0) "\n\t" \
-			"moveq   #" #x ",%3" "\n\t" \
-			"moveq   #32-" #x ",%2" "\n\t" \
-			"lsr.l   %3,%0" "\n\t" \
-			"lsl.l   %2,%1" "\n\t" \
-			"or.l    %1,%0" \
-			: "+d" (eax), "+d" (edx), "=d" (tmpd2), "=d" (tmpd3) \
-			: \
-			: MULSL_CLOBBER "cc" \
+			MULSL(d1,d0) "\n\t" \
+			"moveq   #" #x ",d3" "\n\t" \
+			"moveq   #32-" #x ",d2" "\n\t" \
+			"lsr.l   d3,d0" "\n\t" \
+			"lsl.l   d2,d1" "\n\t" \
+			"or.l    d1,d0" \
+			: "=r" (_eax), "=r" (_edx) \
+			: "r" (_eax), "r" (_edx) \
+			: MULSL_CLOBBER "d2", "d3", "cc" \
 		); \
-		return eax; \
+		return _eax; \
 	}
 
 MULSCALESB(9)
@@ -3756,18 +3758,19 @@ MULSCALESB(23)
 	static inline int mulscale##x(int eax, int edx) __attribute__((always_inline)); \
 	static inline int mulscale##x(int eax, int edx) \
 	{ \
-		int tmpd2; \
+		register int _eax asm("d0") = eax; \
+		register int _edx asm("d1") = edx; \
 		asm volatile ( \
-			MULSL(%1,%0) "\n\t" \
-			"moveq   #" #x ",%2" "\n\t" \
-			"lsr.l   %2,%0" "\n\t" \
-			"lsl.l   #32-" #x ",%1" "\n\t" \
-			"or.l    %1,%0" \
-			: "+d" (eax), "+d" (edx), "=d" (tmpd2) \
-			: \
-			: MULSL_CLOBBER "cc" \
+			MULSL(d1,d0) "\n\t" \
+			"moveq   #" #x ",d2" "\n\t" \
+			"lsr.l   d2,d0" "\n\t" \
+			"lsl.l   #32-" #x ",d1" "\n\t" \
+			"or.l    d1,d0" \
+			: "=r" (_eax), "=r" (_edx) \
+			: "r" (_eax), "r" (_edx) \
+			: MULSL_CLOBBER "d2", "cc" \
 		); \
-		return eax; \
+		return _eax; \
 	}
 
 MULSCALESC(24)
@@ -3782,47 +3785,51 @@ MULSCALESC(31)
 static inline int mulscale32(int eax, int edx) __attribute__((always_inline));
 static inline int mulscale32(int eax, int edx)
 {
+	register int _eax asm("d0") = eax;
+	register int _edx asm("d1") = edx;
 	asm volatile (
-		MULSL(%1,%0) "\n\t"
-		"move.l %1,%0"
-		: "+d" (eax), "+d" (edx)
-		:
+		MULSL(d1,d0) "\n\t"
+		"move.l  d1,d0"
+		: "=r" (_eax), "=r" (_edx)
+		: "r" (_eax), "r" (_edx)
 		: MULSL_CLOBBER "cc"
 	);
-	return eax;
+	return _eax;
 }
 
 static inline int divscale1(int eax, int ebx) __attribute__((always_inline));
 static inline int divscale1(int eax, int ebx)
 {
-	int tmpd2;
+	register int _eax asm("d0") = eax;
+	register int _ebx asm("d1") = ebx;
 	asm volatile (
-		"add.l   %0,%0" "\n\t"
-		"subx.l  %2,%2" "\n\t"
-		DIVSL(%1,%2,%0)
-		: "+r" (eax), "+r" (ebx), "=d" (tmpd2)
-		:
-		: DIVSL_CLOBBER "cc"
+		"add.l   d0,d0" "\n\t"
+		"subx.l  d2,d2" "\n\t"
+		DIVSL(d1,d2,d0)
+		: "=r" (_eax), "=r" (_ebx)
+		: "r" (_eax), "r" (_ebx)
+		: DIVSL_CLOBBER "d2", "cc"
 	);
-	return eax;
+	return _eax;
 }
 
 #define DIVSCALESA(x) \
 	static inline int divscale##x(int eax, int ebx) __attribute__((always_inline)); \
 	static inline int divscale##x(int eax, int ebx) \
 	{ \
-		int tmpd2, tmpd3; \
+		register int _eax asm("d0") = eax; \
+		register int _ebx asm("d1") = ebx; \
 		asm volatile ( \
-			"move.l  %0,%2" "\n\t" \
-			"move.l  #32-" #x ",%3" "\n\t" \
-			"lsl.l   #" #x ",%0" "\n\t" \
-			"asr.l   %3,%2" "\n\t" \
-			DIVSL(%1,%2,%0) \
-			: "+d" (eax), "+d" (ebx), "=d" (tmpd2), "=d" (tmpd3) \
-			: \
-			: DIVSL_CLOBBER "cc" \
+			"move.l  d0,d2" "\n\t" \
+			"move.l  #32-" #x ",d3" "\n\t" \
+			"lsl.l   #" #x ",d0" "\n\t" \
+			"asr.l   d3,d2" "\n\t" \
+			DIVSL(d1,d2,d0) \
+			: "=r" (_eax), "=r" (_ebx) \
+			: "r" (_eax), "r" (_ebx) \
+			: DIVSL_CLOBBER "d2", "d3", "cc" \
 		); \
-		return eax; \
+		return _eax; \
 	}
 
 DIVSCALESA(2)
@@ -3837,19 +3844,20 @@ DIVSCALESA(8)
 	static inline int divscale##x(int eax, int ebx) __attribute__((always_inline)); \
 	static inline int divscale##x(int eax, int ebx) \
 	{ \
-		int tmpd2, tmpd3, tmpd4; \
+		register int _eax asm("d0") = eax; \
+		register int _ebx asm("d1") = ebx; \
 		asm volatile ( \
-			"move.l  %0,%2" "\n\t" \
-			"move.l  #" #x ",%4" "\n\t" \
-			"move.l  #32-" #x ",%3" "\n\t" \
-			"lsl.l   %4,%0" "\n\t" \
-			"asr.l   %3,%2" "\n\t" \
-			DIVSL(%1,%2,%0) \
-			: "+d" (eax), "+d" (ebx), "=d" (tmpd2), "=d" (tmpd3), "=d" (tmpd4) \
-			: \
-			: DIVSL_CLOBBER "cc" \
+			"move.l  d0,d2" "\n\t" \
+			"move.l  #" #x ",d4" "\n\t" \
+			"move.l  #32-" #x ",d3" "\n\t" \
+			"lsl.l   d4,d0" "\n\t" \
+			"asr.l   d3,d2" "\n\t" \
+			DIVSL(d1,d2,d0) \
+			: "=r" (_eax), "=r" (_ebx) \
+			: "r" (_eax), "r" (_ebx) \
+			: DIVSL_CLOBBER "d2", "d3", "d4", "cc" \
 		); \
-		return eax; \
+		return _eax; \
 	}
 
 DIVSCALESB(9)
@@ -3873,18 +3881,19 @@ DIVSCALESB(23)
 	static inline int divscale##x(int eax, int ebx) __attribute__((always_inline)); \
 	static inline int divscale##x(int eax, int ebx) \
 	{ \
-		int tmpd2, tmpd3; \
+		register int _eax asm("d0") = eax; \
+		register int _ebx asm("d1") = ebx; \
 		asm volatile ( \
-			"move.l  %0,%2" "\n\t" \
-			"move.l  #" #x ",%3" "\n\t" \
-			"asr.l   #32-" #x ",%2" "\n\t" \
-			"lsl.l   %3,%0" "\n\t" \
-			DIVSL(%1,%2,%0) \
-			: "+d" (eax), "+d" (ebx), "=d" (tmpd2), "=d" (tmpd3) \
-			: \
-			: DIVSL_CLOBBER "cc" \
+			"move.l  d0,d2" "\n\t" \
+			"move.l  #" #x ",d3" "\n\t" \
+			"asr.l   #32-" #x ",d2" "\n\t" \
+			"lsl.l   d3,d0" "\n\t" \
+			DIVSL(d1,d2,d0) \
+			: "=r" (_eax), "=r" (_ebx) \
+			: "r" (_eax), "r" (_ebx) \
+			: DIVSL_CLOBBER "d2", "d3", "cc" \
 		); \
-		return eax; \
+		return _eax; \
 	}
 
 DIVSCALESC(24)
@@ -3900,36 +3909,41 @@ DIVSCALESC(31)
 static inline int divscale32(int eax, int ebx) __attribute__((always_inline));
 static inline int divscale32(int eax, int ebx)
 {
-	int tmpd2;
+	register int _eax asm("d0") = eax;
+	register int _ebx asm("d1") = ebx;
 	asm volatile (
-		"moveq   #0,%2" "\n\t"
-		DIVSL(%1,%0,%2) "\n\t"
-		"move.l  %2,%0" "\n\t"
-		: "+d" (eax), "+d" (ebx), "=d" (tmpd2)
-		:
-		: DIVSL_CLOBBER "cc"
+		"moveq   #0,d2" "\n\t"
+		DIVSL(d1,d0,d2) "\n\t"
+		"move.l  d2,d0" "\n\t"
+		: "=r" (_eax), "=r" (_ebx)
+		: "r" (_eax), "r" (_ebx)
+		: DIVSL_CLOBBER "d2", "cc"
 	);
-	return eax;
+	return _eax;
 }
 
 #define DMULSCALESA(x) \
 	static inline int dmulscale##x(int eax, int edx, int esi, int edi) __attribute__((always_inline)); \
 	static inline int dmulscale##x(int eax, int edx, int esi, int edi) \
 	{ \
+		register int _eax asm("d0") = eax; \
+		register int _edx asm("d1") = edx; \
+		register int _esi asm("d2") = esi; \
+		register int _edi asm("d3") = edi; \
 		asm volatile ( \
-			MULSL(%1,%0) "\n\t" \
-			MULSL(%3,%2) "\n\t" \
-			"add.l   %2,%0" "\n\t" \
-			"addx.l  %3,%1" "\n\t" \
-			"moveq   #32-" #x ",%2" "\n\t" \
-			"lsr.l   #" #x ",%0" "\n\t" \
-			"lsl.l   %2,%1" "\n\t" \
-			"or.l    %1,%0" \
-			: "+d" (eax), "+d" (edx), "+d" (esi), "+d" (edi) \
-			: \
+			MULSL(d1,d0) "\n\t" \
+			MULSL(d3,d2) "\n\t" \
+			"add.l   d2,d0" "\n\t" \
+			"addx.l  d3,d1" "\n\t" \
+			"moveq   #32-" #x ",d2" "\n\t" \
+			"lsr.l   #" #x ",d0" "\n\t" \
+			"lsl.l   d2,d1" "\n\t" \
+			"or.l    d1,d0" \
+			: "=r" (_eax), "=r" (_edx), "=r" (_esi), "=r" (_edi) \
+			: "r" (_eax), "r" (_edx), "r" (_esi), "r" (_edi) \
 			: MULSL_CLOBBER "cc" \
 		); \
-		return eax; \
+		return _eax; \
 	}
 
 DMULSCALESA(1)
@@ -3945,21 +3959,25 @@ DMULSCALESA(8)
 	static inline int dmulscale##x(int eax, int edx, int esi, int edi) __attribute__((always_inline)); \
 	static inline int dmulscale##x(int eax, int edx, int esi, int edi) \
 	{ \
+		register int _eax asm("d0") = eax; \
+		register int _edx asm("d1") = edx; \
+		register int _esi asm("d2") = esi; \
+		register int _edi asm("d3") = edi; \
 		asm volatile ( \
-			MULSL(%1,%0) "\n\t" \
-			MULSL(%3,%2) "\n\t" \
-			"add.l   %2,%0" "\n\t" \
-			"addx.l  %3,%1" "\n\t" \
-			"moveq   #" #x ",%2" "\n\t" \
-			"moveq   #32-" #x ",%3" "\n\t" \
-			"lsr.l   %2,%0" "\n\t" \
-			"lsl.l   %3,%1" "\n\t" \
-			"or.l    %1,%0" \
-			: "+d" (eax), "+d" (edx), "+d" (esi), "+d" (edi) \
-			: \
+			MULSL(d1,d0) "\n\t" \
+			MULSL(d3,d2) "\n\t" \
+			"add.l   d2,d0" "\n\t" \
+			"addx.l  d3,d1" "\n\t" \
+			"moveq   #" #x ",d2" "\n\t" \
+			"moveq   #32-" #x ",d3" "\n\t" \
+			"lsr.l   d2,d0" "\n\t" \
+			"lsl.l   d3,d1" "\n\t" \
+			"or.l    d1,d0" \
+			: "=r" (_eax), "=r" (_edx), "=r" (_esi), "=r" (_edi) \
+			: "r" (_eax), "r" (_edx), "r" (_esi), "r" (_edi) \
 			: MULSL_CLOBBER "cc" \
 		); \
-		return eax; \
+		return _eax; \
 	}
 
 DMULSCALESB(9)
@@ -3982,20 +4000,24 @@ DMULSCALESB(23)
 	static inline int dmulscale##x(int eax, int edx, int esi, int edi) __attribute__((always_inline)); \
 	static inline int dmulscale##x(int eax, int edx, int esi, int edi) \
 	{ \
+		register int _eax asm("d0") = eax; \
+		register int _edx asm("d1") = edx; \
+		register int _esi asm("d2") = esi; \
+		register int _edi asm("d3") = edi; \
 		asm volatile ( \
-			MULSL(%1,%0) "\n\t" \
-			MULSL(%3,%2) "\n\t" \
-			"add.l   %2,%0" "\n\t" \
-			"addx.l  %3,%1" "\n\t" \
-			"moveq   #" #x ",%3" "\n\t" \
-			"lsr.l   %3,%0" "\n\t" \
-			"lsl.l   #32-" #x ",%1" "\n\t" \
-			"or.l    %1,%0" \
-			: "+d" (eax), "+d" (edx), "+d" (esi), "+d" (edi) \
-			: \
+			MULSL(d1,d0) "\n\t" \
+			MULSL(d3,d2) "\n\t" \
+			"add.l   d2,d0" "\n\t" \
+			"addx.l  d3,d1" "\n\t" \
+			"moveq   #" #x ",d3" "\n\t" \
+			"lsr.l   d3,d0" "\n\t" \
+			"lsl.l   #32-" #x ",d1" "\n\t" \
+			"or.l    d1,d0" \
+			: "=r" (_eax), "=r" (_edx), "=r" (_esi), "=r" (_edi) \
+			: "r" (_eax), "r" (_edx), "r" (_esi), "r" (_edi) \
 			: MULSL_CLOBBER "cc" \
 		); \
-		return eax; \
+		return _eax; \
 	}
 
 DMULSCALESC(24)
@@ -4010,40 +4032,50 @@ DMULSCALESC(31)
 static inline int dmulscale32(int eax, int edx, int esi, int edi) __attribute__((always_inline));
 static inline int dmulscale32(int eax, int edx, int esi, int edi)
 {
+	register int _eax asm("d0") = eax;
+	register int _edx asm("d1") = edx;
+	register int _esi asm("d2") = esi;
+	register int _edi asm("d3") = edi;
 	asm volatile (
-		MULSL(%1,%0) "\n\t"
-		MULSL(%3,%2) "\n\t"
-		"add.l   %2,%0" "\n\t"
-		"addx.l  %3,%1" "\n\t"
-		"move.l  %1,%0"
-		: "+d" (eax), "+d" (edx), "+d" (esi), "+d" (edi)
-		:
+		MULSL(d1,d0) "\n\t"
+		MULSL(d3,d2) "\n\t"
+		"add.l   d2,d0" "\n\t"
+		"addx.l  d3,d1" "\n\t"
+		"move.l  d1,d0"
+		: "=r" (_eax), "=r" (_edx), "=r" (_esi), "=r" (_edi)
+		: "r" (_eax), "r" (_edx), "r" (_esi), "r" (_edi)
 		: MULSL_CLOBBER "cc"
 	);
-	return eax;
+	return _eax;
 }
 
 #define TMULSCALESA(x) \
 	static inline int tmulscale##x(int eax, int edx, int ebx, int ecx, int esi, int edi) __attribute__((always_inline)); \
 	static inline int tmulscale##x(int eax, int edx, int ebx, int ecx, int esi, int edi) \
 	{ \
+		register int _eax asm("d0") = eax; \
+		register int _edx asm("d1") = edx; \
+		register int _ebx asm("d2") = ebx; \
+		register int _ecx asm("d3") = ecx; \
+		register int _esi asm("d4") = esi; \
+		register int _edi asm("d5") = edi; \
 		asm volatile ( \
-			MULSL(%1,%0) "\n\t" \
-			MULSL(%3,%2) "\n\t" \
-			MULSL(%5,%4) "\n\t" \
-			"add.l   %2,%0" "\n\t" \
-			"addx.l  %3,%1" "\n\t" \
-			"add.l   %4,%0" "\n\t" \
-			"addx.l  %5,%1" "\n\t" \
-			"moveq   #32-" #x ",%3" "\n\t" \
-			"lsr.l   #" #x ",%0" "\n\t" \
-			"lsl.l   %3,%1" "\n\t" \
-			"or.l    %1,%0" \
-			: "+d" (eax), "+d" (edx), "+d" (ebx), "+d" (ecx), "+d" (esi), "+d" (edi) \
-			: \
+			MULSL(d1,d0) "\n\t" \
+			MULSL(d3,d2) "\n\t" \
+			MULSL(d5,d4) "\n\t" \
+			"add.l   d2,d0" "\n\t" \
+			"addx.l  d3,d1" "\n\t" \
+			"add.l   d4,d0" "\n\t" \
+			"addx.l  d5,d1" "\n\t" \
+			"moveq   #32-" #x ",d3" "\n\t" \
+			"lsr.l   #" #x ",d0" "\n\t" \
+			"lsl.l   d3,d1" "\n\t" \
+			"or.l    d1,d0" \
+			: "=r" (_eax), "=r" (_edx), "=r" (_ebx), "=r" (_ecx), "=r" (_esi), "=r" (_edi) \
+			: "r" (_eax), "r" (_edx), "r" (_ebx), "r" (_ecx), "r" (_esi), "r" (_edi) \
 			: MULSL_CLOBBER "cc" \
 		); \
-		return eax; \
+		return _eax; \
 	}
 
 TMULSCALESA(1)
@@ -4059,24 +4091,30 @@ TMULSCALESA(8)
 	static inline int tmulscale##x(int eax, int edx, int ebx, int ecx, int esi, int edi) __attribute__((always_inline)); \
 	static inline int tmulscale##x(int eax, int edx, int ebx, int ecx, int esi, int edi) \
 	{ \
+		register int _eax asm("d0") = eax; \
+		register int _edx asm("d1") = edx; \
+		register int _ebx asm("d2") = ebx; \
+		register int _ecx asm("d3") = ecx; \
+		register int _esi asm("d4") = esi; \
+		register int _edi asm("d5") = edi; \
 		asm volatile ( \
-			MULSL(%1,%0) "\n\t" \
-			MULSL(%3,%2) "\n\t" \
-			MULSL(%5,%4) "\n\t" \
-			"add.l   %2,%0" "\n\t" \
-			"addx.l  %3,%1" "\n\t" \
-			"add.l   %4,%0" "\n\t" \
-			"addx.l  %5,%1" "\n\t" \
-			"moveq   #" #x ",%2" "\n\t" \
-			"moveq   #32-" #x ",%3" "\n\t" \
-			"lsr.l   %2,%0" "\n\t" \
-			"lsl.l   %3,%1" "\n\t" \
-			"or.l    %1,%0" \
-			: "+d" (eax), "+d" (edx), "+d" (ebx), "+d" (ecx), "+d" (esi), "+d" (edi) \
-			: \
+			MULSL(d1,d0) "\n\t" \
+			MULSL(d3,d2) "\n\t" \
+			MULSL(d5,d4) "\n\t" \
+			"add.l   d2,d0" "\n\t" \
+			"addx.l  d3,d1" "\n\t" \
+			"add.l   d4,d0" "\n\t" \
+			"addx.l  d5,d1" "\n\t" \
+			"moveq   #" #x ",d2" "\n\t" \
+			"moveq   #32-" #x ",d3" "\n\t" \
+			"lsr.l   d2,d0" "\n\t" \
+			"lsl.l   d3,d1" "\n\t" \
+			"or.l    d1,d0" \
+			: "=r" (_eax), "=r" (_edx), "=r" (_ebx), "=r" (_ecx), "=r" (_esi), "=r" (_edi) \
+			: "r" (_eax), "r" (_edx), "r" (_ebx), "r" (_ecx), "r" (_esi), "r" (_edi) \
 			: MULSL_CLOBBER "cc" \
 		); \
-		return eax; \
+		return _eax; \
 	}
 
 TMULSCALESB(9)
@@ -4099,23 +4137,29 @@ TMULSCALESB(23)
 	static inline int tmulscale##x(int eax, int edx, int ebx, int ecx, int esi, int edi) __attribute__((always_inline)); \
 	static inline int tmulscale##x(int eax, int edx, int ebx, int ecx, int esi, int edi) \
 	{ \
+		register int _eax asm("d0") = eax; \
+		register int _edx asm("d1") = edx; \
+		register int _ebx asm("d2") = ebx; \
+		register int _ecx asm("d3") = ecx; \
+		register int _esi asm("d4") = esi; \
+		register int _edi asm("d5") = edi; \
 		asm volatile ( \
-			MULSL(%1,%0) "\n\t" \
-			MULSL(%3,%2) "\n\t" \
-			MULSL(%5,%4) "\n\t" \
-			"add.l   %2,%0" "\n\t" \
-			"addx.l  %3,%1" "\n\t" \
-			"add.l   %4,%0" "\n\t" \
-			"addx.l  %5,%1" "\n\t" \
-			"moveq   #" #x ",%2" "\n\t" \
-			"lsl.l   #32-" #x ",%1" "\n\t" \
-			"lsr.l   %2,%0" "\n\t" \
-			"or.l    %1,%0" \
-			: "+d" (eax), "+d" (edx), "+d" (ebx), "+d" (ecx), "+d" (esi), "+d" (edi) \
-			: \
+			MULSL(d1,d0) "\n\t" \
+			MULSL(d3,d2) "\n\t" \
+			MULSL(d5,d4) "\n\t" \
+			"add.l   d2,d0" "\n\t" \
+			"addx.l  d3,d1" "\n\t" \
+			"add.l   d4,d0" "\n\t" \
+			"addx.l  d5,d1" "\n\t" \
+			"moveq   #" #x ",d2" "\n\t" \
+			"lsl.l   #32-" #x ",d1" "\n\t" \
+			"lsr.l   d2,d0" "\n\t" \
+			"or.l    d1,d0" \
+			: "=r" (_eax), "=r" (_edx), "=r" (_ebx), "=r" (_ecx), "=r" (_esi), "=r" (_edi) \
+			: "r" (_eax), "r" (_edx), "r" (_ebx), "r" (_ecx), "r" (_esi), "r" (_edi) \
 			: MULSL_CLOBBER "cc" \
 		); \
-		return eax; \
+		return _eax; \
 	}
 
 TMULSCALESC(24)
@@ -4130,20 +4174,26 @@ TMULSCALESC(31)
 static inline int tmulscale32(int eax, int edx, int ebx, int ecx, int esi, int edi) __attribute__((always_inline));
 static inline int tmulscale32(int eax, int edx, int ebx, int ecx, int esi, int edi)
 {
+	register int _eax asm("d0") = eax;
+	register int _edx asm("d1") = edx;
+	register int _ebx asm("d2") = ebx;
+	register int _ecx asm("d3") = ecx;
+	register int _esi asm("d4") = esi;
+	register int _edi asm("d5") = edi;
 	asm volatile (
-		MULSL(%1,%0) "\n\t"
-		MULSL(%3,%2) "\n\t"
-		MULSL(%5,%4) "\n\t"
-		"add.l   %2,%0" "\n\t"
-		"addx.l  %3,%1" "\n\t"
-		"add.l   %4,%0" "\n\t"
-		"addx.l  %5,%1" "\n\t"
-		"move.l  %1,%0"
-		: "+d" (eax), "+d" (edx), "+d" (ebx), "+d" (ecx), "+d" (esi), "+d" (edi)
-		:
+		MULSL(d1,d0) "\n\t"
+		MULSL(d3,d2) "\n\t"
+		MULSL(d5,d4) "\n\t"
+		"add.l   d2,d0" "\n\t"
+		"addx.l  d3,d1" "\n\t"
+		"add.l   d4,d0" "\n\t"
+		"addx.l  d5,d1" "\n\t"
+		"move.l  d1,d0"
+		: "=r" (_eax), "=r" (_edx), "=r" (_ebx), "=r" (_ecx), "=r" (_esi), "=r" (_edi)
+		: "r" (_eax), "r" (_edx), "r" (_ebx), "r" (_ecx), "r" (_esi), "r" (_edi)
 		: MULSL_CLOBBER "cc"
 	);
-	return eax;
+	return _eax;
 }
 
 #else
@@ -4213,50 +4263,57 @@ static inline int sqr(int eax) { return (eax) * (eax); }
 static inline int scale(int eax, int edx, int ecx) __attribute__((always_inline));
 static inline int scale(int eax, int edx, int ecx)
 {
+	register int _eax asm("d0") = eax;
+	register int _edx asm("d1") = edx;
+	register int _ecx asm("d2") = ecx;
 	asm volatile (
-		MULSL(%1,%0) "\n\t"
-		DIVSL(%2,%1,%0)
-		: "+d" (eax), "+d" (edx)
-		: "d" (ecx)
+		MULSL(d1,d0) "\n\t"
+		DIVSL(d2,d1,d0)
+		: "=r" (_eax), "=r" (_edx)
+		: "r" (_eax), "r" (_edx), "r" (_ecx)
 		: DIVSL_CLOBBER "cc"
 	);
-	return eax;
+	return _eax;
 }
 
 static inline int mulscale(int eax, int edx, int ecx) __attribute__((always_inline));
 static inline int mulscale(int eax, int edx, int ecx)
 {
-	int tmpd3;
+	register int _eax asm("d0") = eax;
+	register int _edx asm("d1") = edx;
+	register int _ecx asm("d2") = ecx;
 	asm volatile (
-		MULSL(%1,%0) "\n\t"
-		"moveq    #32,%2" "\n\t"
-		"sub.l    %3,%2" "\n\t"
-		"lsr.l    %3,%0" "\n\t"
-		"lsl.l    %2,%1" "\n\t"
-		"or.l     %1,%0"
-		: "+d" (eax), "+d" (edx), "=d" (tmpd3)
-		: "d" (ecx)
-		: MULSL_CLOBBER "cc"
+		MULSL(d1,d0) "\n\t"
+		"moveq    #32,d3" "\n\t"
+		"sub.l    d2,d3" "\n\t"
+		"lsr.l    d2,d0" "\n\t"
+		"lsl.l    d3,d1" "\n\t"
+		"or.l     d1,d0"
+		: "=r" (_eax), "=r" (_edx)
+		: "r" (_eax), "r" (_edx), "r" (_ecx)
+		: MULSL_CLOBBER "d3", "cc"
 	);
-	return eax;
+	return _eax;
 }
 
 static inline int divscale(int eax, int ebx, int ecx) __attribute__((always_inline));
 static inline int divscale(int eax, int ebx, int ecx)
 {
-	int tmpd3;
+	register int _eax asm("d0") = eax;
+	register int _ebx asm("d1") = ebx;
+	register int _ecx asm("d2") = ecx;
 	asm volatile (
-		"move.l  %0,%3" "\n\t"
-		"lsl.l   %2,%0" "\n\t"
-		"neg.b   %2" "\n\t"
-		"and.b   #31,%2" "\n\t"
-		"asr.l   %2,%3" "\n\t"
-		DIVSL(%1,%3,%0)
-		: "+d" (eax), "+d" (ebx), "+d" (ecx), "=d" (tmpd3)
-		:
-		: DIVSL_CLOBBER "cc"
+		"move.l  d0,d3" "\n\t"
+		"lsl.l   d2,d0" "\n\t"
+		"neg.b   d2" "\n\t"
+		"and.b   #31,d2" "\n\t"
+		"asr.l   d2,d3" "\n\t"
+		DIVSL(d1,d3,d0)
+		: "=r" (_eax), "=r" (_ebx), "=r" (_ecx)
+		: "r" (_eax), "r" (_ebx), "r" (_ecx)
+		: DIVSL_CLOBBER "d3", "cc"
 	);
-	return eax;
+	return _eax;
 }
 
 static inline int dmulscale(int eax, int edx, int esi, int edi, int ecx) __attribute__((always_inline));
@@ -4320,64 +4377,70 @@ static inline int boundmulscale(int eax, int edx, int ecx)
 static inline int mulscale16r(int eax, int edx) __attribute__((always_inline));
 static inline int mulscale16r(int eax, int edx)
 {
-	int tmpd2, tmpd3;
+	register int _eax asm("d0") = eax;
+	register int _edx asm("d1") = edx;
 	asm volatile (
-		MULSL(%1,%0) "\n\t"
-		"add.l   #32768,%0" "\n\t"
-		"moveq   #0,%2" "\n\t"
-		"addx.l  %2,%1" "\n\t"
-		"moveq   #16,%3" "\n\t"
-		"moveq   #16,%2" "\n\t"
-		"lsr.l   %3,%0" "\n\t"
-		"lsl.l   %2,%1" "\n\t"
-		"or.l    %1,%0"
-		: "+d" (eax), "+d" (edx), "=d" (tmpd2), "=d" (tmpd3)
-		:
-		: MULSL_CLOBBER "cc"
+		MULSL(d1,d0) "\n\t"
+		"add.l   #32768,d0" "\n\t"
+		"moveq   #0,d2" "\n\t"
+		"addx.l  d2,d1" "\n\t"
+		"moveq   #16,d3" "\n\t"
+		"moveq   #16,d2" "\n\t"
+		"lsr.l   d3,d0" "\n\t"
+		"lsl.l   d2,d1" "\n\t"
+		"or.l    d1,d0"
+		: "=r" (_eax), "=r" (_edx)
+		: "r" (_eax), "r" (_edx)
+		: MULSL_CLOBBER "d2", "d3", "cc"
 	);
-	return eax;
+	return _eax;
 }
 
 static inline int mulscale30r(int eax, int edx) __attribute__((always_inline));
 static inline int mulscale30r(int eax, int edx)
 {
-	int tmpd2;
+	register int _eax asm("d0") = eax;
+	register int _edx asm("d1") = edx;
 	asm volatile (
-		MULSL(%1,%0) "\n\t"
-		"add.l   #536870912,%0" "\n\t"
-		"moveq   #0,%2" "\n\t"
-		"addx.l  %2,%1" "\n\t"
-		"moveq   #30,%2" "\n\t"
-		"lsr.l   %2,%0" "\n\t"
-		"lsl.l   #2,%1" "\n\t"
-		"or.l    %1,%0"
-		: "+d" (eax), "+d" (edx), "=d" (tmpd2)
-		:
-		: MULSL_CLOBBER "cc"
+		MULSL(d1,d0) "\n\t"
+		"add.l   #536870912,d0" "\n\t"
+		"moveq   #0,d2" "\n\t"
+		"addx.l  d2,d1" "\n\t"
+		"moveq   #30,d2" "\n\t"
+		"lsr.l   d2,d0" "\n\t"
+		"lsl.l   #2,d1" "\n\t"
+		"or.l    d1,d0"
+		: "=r" (_eax), "=r" (_edx)
+		: "r" (_eax), "r" (_edx)
+		: MULSL_CLOBBER "d2", "cc"
 	);
-	return eax;
+	return _eax;
 }
 
 static inline int dmulscale30r(int eax, int edx, int esi, int edi) __attribute__((always_inline));
 static inline int dmulscale30r(int eax, int edx, int esi, int edi)
 {
+	register int _eax asm("d0") = eax;
+	register int _edx asm("d1") = edx;
+	register int _esi asm("d2") = esi;
+	register int _edi asm("d3") = edi;
 	asm volatile (
-		MULSL(%1,%0) "\n\t"
-		MULSL(%3,%2) "\n\t"
-		"add.l   %2,%0" "\n\t"
-		"addx.l  %3,%1" "\n\t"
-		"add.l   #536870912,%0" "\n\t"
-		"moveq   #0,%2" "\n\t"
-		"addx.l  %2,%1" "\n\t"
-		"moveq   #30,%3" "\n\t"
-		"lsr.l   %3,%0" "\n\t"
-		"lsl.l   #2,%1" "\n\t"
-		"or.l    %1,%0"
-		: "+d" (eax), "+d" (edx), "+d" (esi), "+d" (edi)
-		:
+		MULSL(d1,d0) "\n\t"
+		MULSL(d3,d2) "\n\t"
+		"add.l   d2,d0" "\n\t"
+		"addx.l  d3,d1" "\n\t"
+		"add.l   #536870912,d0" "\n\t"
+		"moveq   #0,d2" "\n\t"
+		"addx.l  d2,d1" "\n\t"
+		"moveq   #30,d3" "\n\t"
+		"lsr.l   d3,d0" "\n\t"
+		"lsl.l   #2,d1" "\n\t"
+		"or.l    d1,d0"
+		: "=r" (_eax), "=r" (_edx), "=r" (_esi), "=r" (_edi)
+		: "r" (_eax), "r" (_edx), "r" (_esi), "r" (_edi)
 		: MULSL_CLOBBER "cc"
 	);
-	return eax;
+	return _eax;
 }
 
 #else
@@ -4406,7 +4469,6 @@ static inline int boundmulscale(int a, int d, int c)
 
 #ifdef __AMIGA__
 
-static inline void qinterpolatedown16(void *eax, int ecx, int edx, int esi) __attribute__((always_inline));
 static inline void qinterpolatedown16(void *eax, int ecx, int edx, int esi)
 {
 	register void *_eax asm("a0") = eax;
@@ -4434,7 +4496,6 @@ static inline void qinterpolatedown16(void *eax, int ecx, int edx, int esi)
 	);
 }
 
-static inline void qinterpolatedown16short(void *eax, int ecx, int edx, int esi) __attribute__((always_inline));
 static inline void qinterpolatedown16short(void *eax, int ecx, int edx, int esi)
 {
 	register void *_eax asm("a0") = eax;
@@ -4483,156 +4544,169 @@ static inline void qinterpolatedown16short(void *eax, int ecx, int edx, int esi)
 
 static inline void clearbuf(void *edi, int ecx, int eax)
 {
+	register void *_edi asm("a0") = edi;
+	register int _ecx asm("d0") = ecx;
+	register int _eax asm("d1") = eax;
 	asm volatile (
 		"1:" "\n\t" // loop
-		"move.l  %2,(%0)+" "\n\t"
-		"subq.l  #1,%1" "\n\t"
+		"move.l  d1,(a0)+" "\n\t"
+		"subq.l  #1,d0" "\n\t"
 		"bne.b   1b"
-		: "+a" (edi), "+d" (ecx)
-		: "d" (eax)
+		: "=r" (_edi), "=r" (_ecx)
+		: "r" (_edi), "r" (_ecx), "r" (_eax)
 		: "memory", "cc"
 	);
 }
 
 static inline void copybuf(void *esi, void *edi, int ecx)
 {
+	register void *_esi asm("a0") = esi;
+	register void *_edi asm("a1") = edi;
+	register int _ecx asm("d0") = ecx;
 	asm volatile (
-		"tst.l   %2" "\n\t"
+		"tst.l   d0" "\n\t"
 		"beq.b   2f" "\n\t"
 		"1:" "\n\t" // loop
-		"move.l  (%0)+,(%1)+" "\n\t"
-		"subq.l  #1,%2" "\n\t"
+		"move.l  (a0)+,(a1)+" "\n\t"
+		"subq.l  #1,d0" "\n\t"
 		"bne.b   1b" "\n\t"
 		"2:" // end
-		: "+a" (esi), "+a" (edi), "+d" (ecx)
-		:
+		: "=r" (_esi), "=r" (_edi), "=r" (_ecx)
+		: "r" (_esi), "r" (_edi),  "r" (_ecx)
 		: "memory", "cc"
 	);
 }
 
 static inline void clearbufbyte(void *edi, int ecx, int eax)
 {
-	int tmpd2;
+	register void *_edi asm("a0") = edi;
+	register int _ecx asm("d0") = ecx;
+	register int _eax asm("d1") = eax;
 	asm volatile (
-		"cmp.l   #1,%1" "\n\t"
+		"cmp.l   #1,d0" "\n\t"
 		"blt.b   9f" "\n\t"
 		"bne.b   1f" "\n\t"
-		"move.b  %3,(%0)" "\n\t"
+		"move.b  d1,(a0)" "\n\t"
 		"bra.b   9f" "\n\t"
 		"1:" "\n\t"// cb2
-		"cmp.l   #2,%1" "\n\t"
+		"cmp.l   #2,d0" "\n\t"
 		"bne.b   2f" "\n\t"
-		"move.w  %3,(%0)" "\n\t"
+		"move.w  d1,(a0)" "\n\t"
 		"bra.b   9f" "\n\t"
 		"2:" "\n\t" // cb3
-		"cmp.l   #3,%1" "\n\t"
+		"cmp.l   #3,d0" "\n\t"
 		"bne.b   3f" "\n\t"
-		"move.w  %3,(%0)" "\n\t"
-		"move.b  %3,2(%0)" "\n\t"
+		"move.w  d1,(a0)" "\n\t"
+		"move.b  d1,2(a0)" "\n\t"
 		"bra.b   9f" "\n\t"
 		"3:" "\n\t" // cbdefault
-		"move.l  %0,%2" "\n\t"
-		"btst    #0,%2" "\n\t"
+		"move.l  a0,d2" "\n\t"
+		"btst    #0,d2" "\n\t"
 		"beq.b   4f" "\n\t"
-		"move.b  %3,(%0)+" "\n\t"
-		"subq.l  #1,%1" "\n\t"
+		"move.b  d1,(a0)+" "\n\t"
+		"subq.l  #1,d0" "\n\t"
 		"4:" // cbshort
-		"move.l  %0,%2" "\n\t"
-		"btst    #1,%2" "\n\t"
+		"move.l  a0,d2" "\n\t"
+		"btst    #1,d2" "\n\t"
 		"beq.b   5f" "\n\t"
-		"move.w  %3,(%0)+" "\n\t"
-		"subq.l  #2,%1" "\n\t"
+		"move.w  d1,(a0)+" "\n\t"
+		"subq.l  #2,d0" "\n\t"
 		"5:" "\n\t" // cblong
-		"move.l  %1,%2" "\n\t"
-		"lsr.l   #2,%2" "\n\t"
+		"move.l  d0,d2" "\n\t"
+		"lsr.l   #2,d2" "\n\t"
 		"beq.b   7f" "\n\t"
 		"6:" "\n\t" // loop
-		"move.l  %3,(%0)+" "\n\t"
-		"subq.l  #1,%2" "\n\t"
+		"move.l  d1,(a0)+" "\n\t"
+		"subq.l  #1,d2" "\n\t"
 		"bne.b   6b" "\n\t"
 		"7:" "\n\t" // cbrest
-		"btst    #1,%1" "\n\t"
+		"btst    #1,d0" "\n\t"
 		"beq.b   8f" "\n\t"
-		"move.w  %3,(%0)+" "\n\t"
+		"move.w  d1,(a0)+" "\n\t"
 		"8:" "\n\t" // cbchar
-		"btst    #0,%1" "\n\t"
+		"btst    #0,d0" "\n\t"
 		"beq.b   9f" "\n\t"
-		"move.b  %3,(%0)" "\n\t"
+		"move.b  d1,(a0)" "\n\t"
 		"9:" // end
-		: "+a" (edi), "+d" (ecx), "=d" (tmpd2)
-		: "d" (eax)
-		: "memory", "cc"
+		: "=r" (_edi), "=r" (_ecx)
+		: "r" (_edi), "r" (_ecx), "r" (_eax)
+		: "d2", "memory", "cc"
 	);
 }
 
 static inline void copybufbyte(void *esi, void *edi, int ecx)
 {
-	int tmpd1;
+	register void *_esi asm("a0") = esi;
+	register void *_edi asm("a1") = edi;
+	register int _ecx asm("d0") = ecx;
 	asm volatile (
-		"cmp.l   #1,%2" "\n\t"
+		"cmp.l   #1,d0" "\n\t"
 		"blt.b   9f" "\n\t"
 		"bne.b   1f" "\n\t"
-		"move.b  (%0),(%1)" "\n\t"
+		"move.b  (a0),(a1)" "\n\t"
 		"bra.b   9f" "\n\t"
 		"1:" "\n\t"// cb2
-		"cmp.l   #2,%2" "\n\t"
+		"cmp.l   #2,d0" "\n\t"
 		"bne.b   2f" "\n\t"
-		"move.w  (%0),(%1)" "\n\t"
+		"move.w  (a0),(a1)" "\n\t"
 		"bra.b   9f" "\n\t"
 		"2:" "\n\t" // cb3
-		"cmp.l   #3,%2" "\n\t"
+		"cmp.l   #3,d0" "\n\t"
 		"bne.b   3f" "\n\t"
-		"move.w  (%0),(%1)" "\n\t"
-		"move.b  2(%0),2(%1)" "\n\t"
+		"move.w  (a0),(a1)" "\n\t"
+		"move.b  2(a0),2(a1)" "\n\t"
 		"bra.b   9f" "\n\t"
 		"3:" "\n\t" // cbdefault
-		"move.l  %0,%3" "\n\t"
-		"btst    #0,%3" "\n\t"
+		"move.l  a0,d1" "\n\t"
+		"btst    #0,d1" "\n\t"
 		"beq.b   4f" "\n\t"
-		"move.b  (%0)+,(%1)+" "\n\t"
-		"subq.l  #1,%2" "\n\t"
+		"move.b  (a0)+,(a1)+" "\n\t"
+		"subq.l  #1,d0" "\n\t"
 		"4:" // cbshort
-		"move.l  %0,%3" "\n\t"
-		"btst    #1,%3" "\n\t"
+		"move.l  a0,d1" "\n\t"
+		"btst    #1,d1" "\n\t"
 		"beq.b   5f" "\n\t"
-		"move.w  (%0)+,(%1)+" "\n\t"
-		"subq.l  #2,%2" "\n\t"
+		"move.w  (a0)+,(a1)+" "\n\t"
+		"subq.l  #2,d0" "\n\t"
 		"5:" "\n\t" // cblong
-		"move.l  %2,%3" "\n\t"
-		"lsr.l   #2,%3" "\n\t"
+		"move.l  d0,d1" "\n\t"
+		"lsr.l   #2,d1" "\n\t"
 		"beq.b   7f" "\n\t"
 		"6:" "\n\t" // loop
-		"move.l  (%0)+,(%1)+" "\n\t"
-		"subq.l  #1,%3" "\n\t"
+		"move.l  (a0)+,(a1)+" "\n\t"
+		"subq.l  #1,d1" "\n\t"
 		"bne.b   6b" "\n\t"
 		"7:" "\n\t" // cbrest
-		"btst    #1,%2" "\n\t"
+		"btst    #1,d0" "\n\t"
 		"beq.b   8f" "\n\t"
-		"move.w  (%0)+,(%1)+" "\n\t"
+		"move.w  (a0)+,(a1)+" "\n\t"
 		"8:" "\n\t" // cbchar
-		"btst    #0,%2" "\n\t"
+		"btst    #0,d0" "\n\t"
 		"beq.b   9f" "\n\t"
-		"move.b  (%0),(%1)" "\n\t"
+		"move.b  (a0),(a1)" "\n\t"
 		"9:" // end
-		: "+a" (esi), "+a" (edi), "+d" (ecx), "=d" (tmpd1)
-		:
-		: "memory", "cc"
+		: "=r" (_esi), "=r" (_edi), "=r" (_ecx)
+		: "r" (_esi), "r" (_edi),  "r" (_ecx)
+		: "d1", "memory", "cc"
 	);
 }
 
 static inline void copybufreverse(void *esi, void *edi, int ecx)
 {
+	register void *_esi asm("a0") = esi;
+	register void *_edi asm("a1") = edi;
+	register int _ecx asm("d0") = ecx;
 	asm volatile (
-		"tst.l   %2" "\n\t"
+		"tst.l   d0" "\n\t"
 		"beq.b   2f" "\n\t"
 		"1:" "\n\t" // loop
-		"move.b  (%0),(%1)+" "\n\t"
-		"subq.l  #1,%2" "\n\t"
-		"subq.l  #1,%0" "\n\t"
+		"move.b  (a0),(a1)+" "\n\t"
+		"subq.l  #1,d0" "\n\t"
+		"subq.l  #1,a0" "\n\t"
 		"bne.b   1b" "\n\t"
 		"2:" // end
-		: "+a" (esi), "+a" (edi), "+d" (ecx)
-		:
+		: "=r" (_esi), "=r" (_edi), "=r" (_ecx)
+		: "r" (_esi), "r" (_edi),  "r" (_ecx)
 		: "memory", "cc"
 	);
 }
