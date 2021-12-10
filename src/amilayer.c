@@ -1912,4 +1912,8 @@ ldiv_t ldiv(long num, long denom)
 	}
 	return r;
 }
+// minimum stack
+extern void __stkinit(void);
+void * __x = __stkinit;
+unsigned long __stack = (32*1024);
 #endif
