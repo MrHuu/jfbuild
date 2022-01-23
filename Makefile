@@ -52,9 +52,9 @@ NASM?=nasm
 WINDRES?=windres
 AR?=ar
 RANLIB?=ranlib
-OURCFLAGS=$(debug) -g -W -Wall -Wimplicit -Wno-unused \
-	-fno-strict-aliasing -DNO_GCC_BUILTINS \
-	-DKSFORBUILD -I$(INC) -I$(SRC)
+OURCFLAGS=$(debug) -g -W -Wall -Wno-unused-variable -Wno-unused-function \
+	-Wno-unused-but-set-variable -fno-strict-aliasing -DKSFORBUILD \
+	-I$(INC) -I$(SRC)
 OURCXXFLAGS=-fno-exceptions -fno-rtti
 GAMECFLAGS=-I$(GAME) -I$(INC)
 LIBS=
@@ -75,7 +75,7 @@ endif
 
 ENGINEOBJS+= \
 	$(SRC)/a-c.$o \
-  	$(SRC)/asmprot.$o \
+	$(SRC)/asmprot.$o \
 	$(SRC)/baselayer.$o \
 	$(SRC)/cache1d.$o \
 	$(SRC)/compat.$o \
@@ -90,13 +90,16 @@ ENGINEOBJS+= \
 	$(SRC)/textfont.$o \
 	$(SRC)/smalltextfont.$o
 
+ifneq ($(USE_OPENGL),0)
+	ENGINEOBJS+= \
+		$(SRC)/glbuild.$o \
+		$(SRC)/glbuild_fs.$o \
+		$(SRC)/glbuild_vs.$o
+endif
 ifneq ($(USE_POLYMOST),0)
 	ENGINEOBJS+= $(SRC)/polymost.$o
 	ifneq ($(USE_OPENGL),0)
 		ENGINEOBJS+= \
-			$(SRC)/glbuild.$o \
-			$(SRC)/glbuild_fs.$o \
-			$(SRC)/glbuild_vs.$o \
 			$(SRC)/hightile.$o \
 			$(SRC)/mdsprite.$o \
 			$(SRC)/polymost_fs.$o \
@@ -271,7 +274,7 @@ $(SRC)/%.$o: $(SRC)/%.cpp
 	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(LIBSQUISH)/%.$o: $(LIBSQUISH)/%.cpp
-	$(CXX) $(CXXFLAGS) $(BUILDCFLAGS) -O2 -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -O2 -c $< -o $@
 
 $(GAME)/%.$o: $(GAME)/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@

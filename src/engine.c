@@ -38,7 +38,7 @@
 void *kmalloc(bsize_t size) { return(Bmalloc(size)); }
 void kfree(void *buffer) { Bfree(buffer); }
 
-void loadvoxel(int voxindex) { voxindex=0; }
+void loadvoxel(int voxindex) { (void)voxindex; }
 #ifndef __AMIGA__
 int tiletovox[MAXTILES];
 #endif
@@ -663,9 +663,10 @@ static int permhead = 0, permtail = 0;
 short numscans, numhits, numbunches;
 
 static short capturecount = 0;
-static char capturename[20], captureatnextpage = 0;
-static int screencapture_pcx(char *filename, char inverseit);
-static int screencapture_tga(char *filename, char inverseit);
+static char capturename[20] = "capt0000.xxx", captureatnextpage = 0;
+static int screencapture_pcx(char mode);
+static int screencapture_tga(char mode);
+static int screencapture_png(char mode);
 
 unsigned char vgapal16[4*256] =
 {
@@ -1227,6 +1228,8 @@ int animateoffs(short tilenum, short fakevar)
 	return qanimateoffs(tilenum, fakevar);
 #else
 	int i, k, offs;
+
+	(void)fakevar;
 
 	offs = 0;
 	i = (totalclocklock>>((picanm[tilenum]>>24)&15));
@@ -2370,6 +2373,8 @@ static void parascan(int dax1, int dax2, int sectnum, unsigned char dastat, int 
 	sectortype *sec;
 	int j, k, l, m, n, x, z, wallnum, nextsectnum, globalhorizbak;
 	short *topptr, *botptr;
+
+	(void)dax1; (void)dax2;
 
 	sectnum = thesector[bunchfirst[bunch]]; sec = &sector[sectnum];
 
@@ -5573,6 +5578,9 @@ static int raytrace(int x3, int y3, int *x4, int *y4)
 static void sighandler(int sig, siginfo_t *info, void *ctx)
 {
 	const char *s;
+
+	(void)ctx;
+
 	switch (sig) {
 		case SIGFPE:
 			switch (info->si_code) {
@@ -5712,7 +5720,7 @@ int initengine(void)
 	visibility = 512;
 	parallaxvisibility = 512;
 
-	captureformat = 0;
+	captureformat = 2;  // PNG
 
 	if (loadtables()) return 1;
 	if (loadpalette()) return 1;
@@ -7615,15 +7623,15 @@ int saveboard(char *filename, int *daposx, int *daposy, int *daposz,
 		mapversion = 8;
 	else
 		mapversion = 7;
-	tl = B_LITTLE32(mapversion);    Bwrite(fil,&tl,4);
+	tl = B_LITTLE32(mapversion);    if (Bwrite(fil,&tl,4) != 4) goto writeerror;
 
-	tl = B_LITTLE32(*daposx);       Bwrite(fil,&tl,4);
-	tl = B_LITTLE32(*daposy);       Bwrite(fil,&tl,4);
-	tl = B_LITTLE32(*daposz);       Bwrite(fil,&tl,4);
-	ts = B_LITTLE16(*daang);        Bwrite(fil,&ts,2);
-	ts = B_LITTLE16(*dacursectnum); Bwrite(fil,&ts,2);
+	tl = B_LITTLE32(*daposx);       if (Bwrite(fil,&tl,4) != 4) goto writeerror;
+	tl = B_LITTLE32(*daposy);       if (Bwrite(fil,&tl,4) != 4) goto writeerror;
+	tl = B_LITTLE32(*daposz);       if (Bwrite(fil,&tl,4) != 4) goto writeerror;
+	ts = B_LITTLE16(*daang);        if (Bwrite(fil,&ts,2) != 2) goto writeerror;
+	ts = B_LITTLE16(*dacursectnum); if (Bwrite(fil,&ts,2) != 2) goto writeerror;
 
-	ts = B_LITTLE16(numsectors);    Bwrite(fil,&ts,2);
+	ts = B_LITTLE16(numsectors);    if (Bwrite(fil,&ts,2) != 2) goto writeerror;
 	for (i=0; i<numsectors; i++) {
 		tsect = sector[i];
 		tsect.wallptr       = B_LITTLE16(tsect.wallptr);
@@ -7639,10 +7647,10 @@ int saveboard(char *filename, int *daposx, int *daposy, int *daposz,
 		tsect.lotag         = B_LITTLE16(tsect.lotag);
 		tsect.hitag         = B_LITTLE16(tsect.hitag);
 		tsect.extra         = B_LITTLE16(tsect.extra);
-		Bwrite(fil,&tsect,sizeof(sectortype));
+		if (Bwrite(fil,&tsect,sizeof(sectortype)) != sizeof(sectortype)) goto writeerror;
 	}
 
-	ts = B_LITTLE16(numwalls);      Bwrite(fil,&ts,2);
+	ts = B_LITTLE16(numwalls);      if (Bwrite(fil,&ts,2) != 2) goto writeerror;
 	for (i=0; i<numwalls; i++) {
 		twall = wall[i];
 		twall.x          = B_LITTLE32(twall.x);
@@ -7656,10 +7664,10 @@ int saveboard(char *filename, int *daposx, int *daposy, int *daposz,
 		twall.lotag      = B_LITTLE16(twall.lotag);
 		twall.hitag      = B_LITTLE16(twall.hitag);
 		twall.extra      = B_LITTLE16(twall.extra);
-		Bwrite(fil,&twall,sizeof(walltype));
+		if (Bwrite(fil,&twall,sizeof(walltype)) != sizeof(walltype)) goto writeerror;
 	}
 
-	ts = B_LITTLE16(numsprites);    Bwrite(fil,&ts,2);
+	ts = B_LITTLE16(numsprites);    if (Bwrite(fil,&ts,2) != 2) goto writeerror;
 
 	for(j=0;j<MAXSTATUS;j++)
 	{
@@ -7682,13 +7690,17 @@ int saveboard(char *filename, int *daposx, int *daposy, int *daposz,
 			tspri.lotag   = B_LITTLE16(tspri.lotag);
 			tspri.hitag   = B_LITTLE16(tspri.hitag);
 			tspri.extra   = B_LITTLE16(tspri.extra);
-			Bwrite(fil,&tspri,sizeof(spritetype));
+			if (Bwrite(fil,&tspri,sizeof(spritetype)) != sizeof(spritetype)) goto writeerror;
 			i = nextspritestat[i];
 		}
 	}
 
 	Bclose(fil);
 	return(0);
+
+writeerror:
+	Bclose(fil);
+	return(-1);
 }
 
 
@@ -7955,8 +7967,7 @@ void nextpage(void)
 #endif
 
 			if (captureatnextpage) {
-				if (captureformat == 0) screencapture_tga(capturename,captureatnextpage&1);
-				else screencapture_pcx(capturename,captureatnextpage&1);
+				screencapture(NULL, captureatnextpage);
 				captureatnextpage = 0;
 			}
 
@@ -10582,6 +10593,8 @@ void preparemirror(int dax, int day, int daz, short daang, int dahoriz, short da
 {
 	int i, j, x, y, dx, dy;
 
+	(void)daz; (void)dahoriz; (void)dasector;
+
 	x = wall[dawall].x; dx = wall[wall[dawall].point2].x-x;
 	y = wall[dawall].y; dy = wall[wall[dawall].point2].y-y;
 	j = dx*dx + dy*dy; if (j == 0) return;
@@ -11243,6 +11256,8 @@ void draw2dgrid(int posxe, int posye, short ange, int zoome, short gride)
 {
 	int i, xp1, yp1, xp2=0, yp2, tempy;
 
+	(void)ange;
+
 	if (gride > 0)
 	{
 		begindrawing();	//{{{
@@ -11606,37 +11621,121 @@ void printext256(int xpos, int ypos, short col, short backcol, const char *name,
 //
 // screencapture
 //
-static int screencapture_tga(char *filename, char inverseit)
+static BFILE *screencapture_openfile(const char *ext)
 {
-	int i,j;
-	unsigned char *ptr, head[18] = { 0,1,1,0,0,0,1,24,0,0,0,0,0/*wlo*/,0/*whi*/,0/*hlo*/,0/*hhi*/,8,0 };
-	//char palette[4*256];
-	char *fn = Bstrdup(filename), *inversebuf, c;
+	int i;
 	BFILE *fil;
 
 	do {	// JBF 2004022: So we don't overwrite existing screenshots
-        if (capturecount > 9999) {
-            Bfree(fn);
-            return -1;
-        }
+		if (capturecount > 9999) {
+			return NULL;
+		}
 
-		i = Bstrrchr(fn,'.')-fn-4;
-		fn[i++] = ((capturecount/1000)%10)+48;
-		fn[i++] = ((capturecount/100)%10)+48;
-		fn[i++] = ((capturecount/10)%10)+48;
-		fn[i++] = (capturecount%10)+48;
+		i = Bstrrchr(capturename,'.')-capturename-4;
+		capturename[i++] = ((capturecount/1000)%10)+48;
+		capturename[i++] = ((capturecount/100)%10)+48;
+		capturename[i++] = ((capturecount/10)%10)+48;
+		capturename[i++] = (capturecount%10)+48;
 		i++;
-		fn[i++] = 't';
-		fn[i++] = 'g';
-		fn[i++] = 'a';
+		capturename[i++] = ext[0];
+		capturename[i++] = ext[1];
+		capturename[i++] = ext[2];
 
-		if ((fil = Bfopen(fn,"rb")) == NULL) break;
+		if ((fil = Bfopen(capturename, "rb")) == NULL) break;
 		Bfclose(fil);
 		capturecount++;
 	} while (1);
-	fil = Bfopen(fn,"wb");
-	if (fil == NULL) {
-		Bfree(fn);
+	fil = Bfopen(capturename, "wb");
+	if (fil) capturecount++;
+	return fil;
+}
+
+static int screencapture_writeframe(BFILE *fil, char mode, void *v,
+	void (*writeline)(unsigned char *, int, int, BFILE *, void *))
+{
+	int y, ystart, yend, yinc, j;
+	unsigned char *ptr, *buf;
+	char inverseit = 0, bottotop = 0, bgr = 0;
+
+	inverseit = (mode & 1);
+	bottotop = (mode & 2);
+	bgr = (mode & 4);
+
+#if USE_POLYMOST && USE_OPENGL
+	if (rendmode >= 3 && qsetmode == 200) {
+		// OpenGL returns bottom-to-top ordered lines.
+		if (bottotop) {
+			ystart = 0;
+			yend = ydim;
+			yinc = 1;
+		} else {
+			ystart = ydim-1;
+			yend = -1;
+			yinc = -1;
+		}
+		buf = kmalloc(xdim*ydim*3);
+		if (buf) {
+			glfunc.glReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,buf);
+			if (bgr) {
+				for (j=(xdim*ydim-1)*3; j>=0; j-=3) {
+					swapchar(&buf[j+0], &buf[j+2]);
+				}
+			}
+			for (y = ystart; y != yend; y += yinc) {
+				ptr = buf + y*xdim*3;
+				writeline(ptr, xdim, 3, fil, v);
+			}
+			kfree(buf);
+		}
+		return(0);
+	}
+#endif
+
+	begindrawing();	//{{{
+	ptr = (unsigned char *)frameplace;
+	if (bottotop) {
+		ystart = ydim-1;
+		yend = -1;
+		yinc = -1;
+	} else {
+		ystart = 0;
+		yend = ydim;
+		yinc = 1;
+	}
+
+	if (inverseit && qsetmode != 200) {
+		buf = kmalloc(bytesperline);
+		if (buf) {
+			for (y = ystart; y != yend; y += yinc) {
+				copybuf(ptr + y*bytesperline, buf, xdim >> 2);
+				for (j=(bytesperline>>2)-1; j>=0; j--) ((int *)buf)[j] ^= 0x0f0f0f0fL;
+				writeline(buf, xdim, 1, fil, v);
+			}
+			kfree(buf);
+		}
+	} else {
+		for (y = ystart; y != yend; y += yinc) {
+			writeline(ptr + y*bytesperline, xdim, 1, fil, v);
+		}
+	}
+
+	enddrawing();	//}}}
+	return(0);
+}
+
+static void screencapture_writetgaline(unsigned char *buf, int bytes, int elements, BFILE *fp, void *v)
+{
+	(void)v;
+	Bfwrite(buf, bytes, elements, fp);
+}
+
+static int screencapture_tga(char mode)
+{
+	int i,j;
+	unsigned char *ptr, head[18] = { 0,1,1,0,0,0,1,24,0,0,0,0,0/*wlo*/,0/*whi*/,0/*hlo*/,0/*hhi*/,8,0 };
+	BFILE *fil;
+
+	if ((fil = screencapture_openfile("tga")) == NULL) {
 		return -1;
 	}
 
@@ -11660,14 +11759,10 @@ static int screencapture_tga(char *filename, char inverseit)
 
 	Bfwrite(head, 18, 1, fil);
 
-	begindrawing();	//{{{
-	ptr = (unsigned char *)frameplace;
-
 	// palette first
 #if USE_POLYMOST && USE_OPENGL
 	if (rendmode < 3 || (rendmode == 3 && qsetmode != 200)) {
 #endif
-		//getpalette(0,256,palette);
 		for (i=0; i<256; i++) {
 			Bfputc(curpalettefaded[i].b, fil);	// b
 			Bfputc(curpalettefaded[i].g, fil);	// g
@@ -11677,48 +11772,11 @@ static int screencapture_tga(char *filename, char inverseit)
 	}
 #endif
 
-	// targa renders bottom to top, from left to right
-	if (inverseit && qsetmode != 200) {
-		inversebuf = kmalloc(bytesperline);
-		if (inversebuf) {
-			for (i=ydim-1; i>=0; i--) {
-				copybuf(ptr+i*bytesperline, inversebuf, xdim >> 2);
-				for (j=0; j < (bytesperline>>2); j++) ((int *)inversebuf)[j] ^= 0x0f0f0f0fL;
-				Bfwrite(inversebuf, xdim, 1, fil);
-			}
-			kfree(inversebuf);
-		}
-	} else {
-#if USE_POLYMOST && USE_OPENGL
-		if (rendmode >= 3 && qsetmode == 200) {
-			// 24bit
-			inversebuf = kmalloc(xdim*ydim*3);
-			if (inversebuf) {
-				glfunc.glReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
-				j = xdim*ydim*3;
-				for (i=0; i<j; i+=3) {
-					c = inversebuf[i];
-					inversebuf[i] = inversebuf[i+2];
-					inversebuf[i+2] = c;
-				}
-				Bfwrite(inversebuf, xdim*ydim, 3, fil);
-				kfree(inversebuf);
-			}
-		} else {
-#endif
-			for (i=ydim-1; i>=0; i--)
-				Bfwrite(ptr+i*bytesperline, xdim, 1, fil);
-#if USE_POLYMOST && USE_OPENGL
-		}
-#endif
-	}
-
-	enddrawing();	//}}}
+	// Targa renders bottom to top, from left to right.
+	// 24bit images use BGR element order.
+	screencapture_writeframe(fil, (mode&1) | 2 | 4, NULL, screencapture_writetgaline);
 
 	Bfclose(fil);
-	buildprintf("Saved screenshot to %s\n", fn);
-	Bfree(fn);
-	capturecount++;
 	return(0);
 }
 
@@ -11752,51 +11810,40 @@ static void writepcxline(unsigned char *buf, int bytes, int step, BFILE *fp)
 			runCount++;
 			if (runCount == 63) {
 				writepcxbyte(last, runCount, fp);
-        	                runCount = 0;
-                	}
-	        } else {
+				runCount = 0;
+			}
+		} else {
 			if (runCount)
 				writepcxbyte(last, runCount, fp);
 
-                	last = ths;
+			last = ths;
 			runCount = 1;
-                }
-        }
+		}
+	}
 
 	if (runCount) writepcxbyte(last, runCount, fp);
 	if (bytes&1) writepcxbyte(0, 1, fp);
 }
 
-static int screencapture_pcx(char *filename, char inverseit)
+static void screencapture_writepcxline(unsigned char *buf, int bytes, int elements, BFILE *fp, void *v)
+{
+	(void)v;
+	if (elements == 3) {
+		writepcxline(buf,   bytes, 3, fp);
+		writepcxline(buf+1, bytes, 3, fp);
+		writepcxline(buf+2, bytes, 3, fp);
+		return;
+	}
+	writepcxline(buf, bytes, 1, fp);
+}
+
+static int screencapture_pcx(char mode)
 {
 	int i,j,bpl;
-	unsigned char *ptr, head[128], *inversebuf;
-	char *fn = Bstrdup(filename);
+	unsigned char *ptr, head[128];
 	BFILE *fil;
 
-	do {	// JBF 2004022: So we don't overwrite existing screenshots
-        if (capturecount > 9999) {
-            Bfree(fn);
-            return -1;
-        }
-
-		i = Bstrrchr(fn,'.')-fn-4;
-		fn[i++] = ((capturecount/1000)%10)+48;
-		fn[i++] = ((capturecount/100)%10)+48;
-		fn[i++] = ((capturecount/10)%10)+48;
-		fn[i++] = (capturecount%10)+48;
-		i++;
-		fn[i++] = 'p';
-		fn[i++] = 'c';
-		fn[i++] = 'x';
-
-		if ((fil = Bfopen(fn,"rb")) == NULL) break;
-		Bfclose(fil);
-		capturecount++;
-	} while (1);
-	fil = Bfopen(fn,"wb");
-	if (fil == NULL) {
-		Bfree(fn);
+	if ((fil = screencapture_openfile("pcx")) == NULL) {
 		return -1;
 	}
 
@@ -11828,44 +11875,9 @@ static int screencapture_pcx(char *filename, char inverseit)
 
 	Bfwrite(head, 128, 1, fil);
 
-	begindrawing();	//{{{
-	ptr = (unsigned char *)frameplace;
-
-	// targa renders bottom to top, from left to right
-	if (inverseit && qsetmode != 200) {
-		inversebuf = kmalloc(bytesperline);
-		if (inversebuf) {
-			for (i=0; i<ydim; i++) {
-				copybuf(ptr+i*bytesperline, inversebuf, xdim >> 2);
-				for (j=0; j < (bytesperline>>2); j++) ((int *)inversebuf)[j] ^= 0x0f0f0f0fL;
-				writepcxline(inversebuf, xdim, 1, fil);
-			}
-			kfree(inversebuf);
-		}
-	} else {
-#if USE_POLYMOST && USE_OPENGL
-		if (rendmode >= 3 && qsetmode == 200) {
-			// 24bit
-			inversebuf = kmalloc(xdim*ydim*3);
-			if (inversebuf) {
-				glfunc.glReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
-				for (i=ydim-1; i>=0; i--) {
-					writepcxline(inversebuf+i*xdim*3,   xdim, 3, fil);
-					writepcxline(inversebuf+i*xdim*3+1, xdim, 3, fil);
-					writepcxline(inversebuf+i*xdim*3+2, xdim, 3, fil);
-				}
-				kfree(inversebuf);
-			}
-		} else {
-#endif
-			for (i=0; i<ydim; i++)
-				writepcxline(ptr+i*bytesperline, xdim, 1, fil);
-#if USE_POLYMOST && USE_OPENGL
-		}
-#endif
-	}
-
-	enddrawing();	//}}}
+	// PCX renders top to bottom, from left to right.
+	// 24-bit images have each scan line written as deinterleaved RGB.
+	screencapture_writeframe(fil, (mode&1), NULL, screencapture_writepcxline);
 
 	// palette last
 #if USE_POLYMOST && USE_OPENGL
@@ -11883,21 +11895,168 @@ static int screencapture_pcx(char *filename, char inverseit)
 #endif
 
 	Bfclose(fil);
-	buildprintf("Saved screenshot to %s\n", fn);
-	Bfree(fn);
-	capturecount++;
+	return(0);
+}
+
+struct pngsums {
+	unsigned int crc;
+	unsigned short adlers1;
+	unsigned short adlers2;
+};
+
+static void screencapture_writepngline(unsigned char *buf, int bytes, int elements, BFILE *fp, void *v)
+{
+	unsigned char header[6];
+	unsigned short blklen;
+	int i;
+	struct pngsums *sums = (struct pngsums *)v;
+
+	blklen = (unsigned short)B_LITTLE16(1 + bytes * elements);	// One extra for the filter type.
+	header[0] = 0;	// BFINAL = 0, BTYPE = 00.
+	memcpy(&header[1], &blklen, 2);
+	blklen = ~blklen;
+	memcpy(&header[3], &blklen, 2);
+
+	header[5] = 0;	// No filter.
+	sums->adlers2 = (sums->adlers2 + sums->adlers1) % 65521;
+	crc32block(&sums->crc, header, sizeof(header));
+	Bfwrite(header, sizeof(header), 1, fp);
+
+	for (i=0; i < bytes * elements; i++) {
+		sums->adlers1 = (sums->adlers1 + buf[i]) % 65521;
+		sums->adlers2 = (sums->adlers2 + sums->adlers1) % 65521;
+	}
+	crc32block(&sums->crc, buf, bytes * elements);
+	Bfwrite(buf, bytes, elements, fp);
+}
+
+static int screencapture_png(char mode)
+{
+	const unsigned char pngsig[] = { 0x89, 'P', 'N', 'G', 0xd, 0xa, 0x1a, 0xa };
+	const unsigned char enddeflate[] = { 1, 0, 0, 0xff, 0xff };
+
+#define BEGIN_PNG_CHUNK(type) { \
+	acclen = 4; \
+	memcpy(&buf[acclen], type, 4); \
+	acclen += 4; \
+}
+#define SET_PNG_CHUNK_LEN(fore) { \
+	/* Accumulated and forecast, minus length and type fields. */ \
+	int len = B_BIG32(acclen + fore - 8); \
+	memcpy(&buf[0], &len, 4); \
+}
+#define END_PNG_CHUNK(ccrc) { \
+	unsigned int crc = B_BIG32(ccrc); \
+	memcpy(&buf[acclen], &crc, 4); \
+	acclen += 4; \
+	Bfwrite(buf, acclen, 1, fil); \
+}
+
+	unsigned char buf[1024];
+	int length, i, acclen, glmode = 0;
+	unsigned short s;
+	BFILE *fil;
+	struct pngsums sums;
+
+#if USE_POLYMOST && USE_OPENGL
+	glmode = (rendmode == 3 && qsetmode == 200);
+#endif
+
+	if ((fil = screencapture_openfile("png")) == NULL) {
+		return -1;
+	}
+
+	Bfwrite(pngsig, sizeof(pngsig), 1, fil);
+
+	// Header.
+	BEGIN_PNG_CHUNK("IHDR");
+	i = B_BIG32(xdim); memcpy(&buf[acclen], &i, 4); acclen += 4;
+	i = B_BIG32(ydim); memcpy(&buf[acclen], &i, 4); acclen += 4;
+	buf[acclen++] = 8;	// Bit depth per sample/palette index.
+	buf[acclen++] = glmode ? 2 : 3;	// Colour type.
+	buf[acclen++] = 0;	// Deflate compression method.
+	buf[acclen++] = 0;	// Adaptive filter.
+	buf[acclen++] = 0;	// No interlace.
+	SET_PNG_CHUNK_LEN(0);
+	END_PNG_CHUNK(crc32once(&buf[4], acclen - 4));
+
+	// Palette if needed.
+#if USE_POLYMOST && USE_OPENGL
+	if (rendmode < 3 || (rendmode == 3 && qsetmode != 200)) {
+#endif
+		BEGIN_PNG_CHUNK("PLTE");
+		for (i=0; i<256; i++, acclen+=3) {
+			buf[acclen+0] = curpalettefaded[i].r;
+			buf[acclen+1] = curpalettefaded[i].g;
+			buf[acclen+2] = curpalettefaded[i].b;
+		}
+		SET_PNG_CHUNK_LEN(0);
+		END_PNG_CHUNK(crc32once(&buf[4], acclen - 4));
+#if USE_POLYMOST && USE_OPENGL
+	}
+#endif
+
+	// Image Data.
+	BEGIN_PNG_CHUNK("IDAT");
+	crc32init(&sums.crc);
+
+	// Content is a Zlib stream.
+	buf[acclen++] = 0x78;	// Deflate, 32k window.
+	buf[acclen++] = 1;		// Check bits 0-4: (0x7800 + 1) % 0x1f == 0
+
+	length = (1 + 2 + 2) + 1 + xdim * (glmode ? 3 : 1);	// Length of one scanline deflate block.
+	length *= ydim;			// By height.
+	length += sizeof(enddeflate);	// Plus length of 'End of Deflate' block.
+	length += 4;			// Plus Adler32 checksum.
+	SET_PNG_CHUNK_LEN(length);
+
+	crc32block(&sums.crc, &buf[4], acclen - 4);
+	Bfwrite(buf, acclen, 1, fil);	// Write header and start of Zlib stream.
+
+	sums.adlers1 = 1;
+	sums.adlers2 = 0;
+	screencapture_writeframe(fil, (mode&1), &sums, screencapture_writepngline);
+
+	// Finalise the Zlib stream.
+	acclen = 0;
+	memcpy(&buf[acclen], enddeflate, sizeof(enddeflate)); acclen += sizeof(enddeflate);
+	s = B_BIG16(sums.adlers2); memcpy(&buf[acclen], &s, 2); acclen += 2;
+	s = B_BIG16(sums.adlers1); memcpy(&buf[acclen], &s, 2); acclen += 2;
+
+	// Finalise the Image Data chunk and write what remains out.
+	crc32block(&sums.crc, buf, acclen);
+	crc32finish(&sums.crc);
+	END_PNG_CHUNK(sums.crc);
+
+	// End chunk.
+	BEGIN_PNG_CHUNK("IEND");
+	SET_PNG_CHUNK_LEN(0);
+	END_PNG_CHUNK(crc32once(&buf[4], acclen - 4));
+
+	Bfclose(fil);
 	return(0);
 }
 
 int screencapture(char *filename, char mode)
 {
-	if (qsetmode == 200 && (mode & 2)) {
-		captureatnextpage = mode;
+	int ret;
+
+	if (filename) {
 		strcpy(capturename, filename);
+	}
+	if (qsetmode == 200 && (mode & 2) && !captureatnextpage) {
+		captureatnextpage = mode;
 		return 0;
 	}
-	if (captureformat == 0) return screencapture_tga(filename,mode&1);
-	else return screencapture_pcx(filename,mode&1);
+	switch (captureformat) {
+		case 0: ret = screencapture_tga(mode&1); break;
+		case 1: ret = screencapture_pcx(mode&1); break;
+		default: ret = screencapture_png(mode&1); break;
+	}
+	if (ret == 0) {
+		buildprintf("Saved screenshot to %s\n", capturename);
+	}
+	return ret;
 }
 
 
