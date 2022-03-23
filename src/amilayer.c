@@ -1705,7 +1705,7 @@ static void updatejoystick(void)
 					analog_centered = TRUE;
 				}
 
-				// left analog stick258
+				// left analog stick
 				joyaxis[0] = (analog_lx - analog_clx) << 8;
 				joyaxis[1] = (analog_ly - analog_cly) << 8;
 				// right analog stick
@@ -1915,5 +1915,5 @@ ldiv_t ldiv(long num, long denom)
 // minimum stack
 extern void __stkinit(void);
 void * __x = __stkinit;
-unsigned long __stack = (32*1024);
+unsigned long __stack = (50*1024);
 #endif
