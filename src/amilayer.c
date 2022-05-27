@@ -1607,9 +1607,15 @@ int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal)
 
 		*sp++ = 256 << 16;
 		for (i = 0; i < 256; i++) {
+#if B_BIG_ENDIAN != 0
+			*sp++ = *((ULONG *)&curpalettefaded[i].r);
+			*sp++ = *((ULONG *)&curpalettefaded[i].g);
+			*sp++ = *((ULONG *)&curpalettefaded[i].b);
+#else
 			*sp++ = ((ULONG)curpalettefaded[i].r) << 24;
 			*sp++ = ((ULONG)curpalettefaded[i].g) << 24;
 			*sp++ = ((ULONG)curpalettefaded[i].b) << 24;
+#endif
 		}
 		*sp = 0;
 
