@@ -406,7 +406,7 @@ void debugprintf(const char *f, ...)
 //
 //
 
-static const char keyascii[] =
+static /*const*/ char keyascii[] =
 {
 	'`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',							/*  10 */
 	'-', '=', '\\', 0, 0, 'q', 'w', 'e', 'r', 't',							/*  20 */
@@ -421,7 +421,7 @@ static const char keyascii[] =
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0,									/* 110 */
 };
 
-static const char keyascii_shift[] =
+static /*const*/ char keyascii_shift[] =
 {
 	'~', '!', '\"', 0xA3/*Pound*/, '$', '%', '^', '&', '*', '(', ')',							/*  10 */
 	'_', '+', '|', 0, 0, 'Q', 'W', 'E', 'R', 'T',							/*  20 */
@@ -666,6 +666,46 @@ int initinput(void)
 	}
 	if (LowLevelBase && !gameport_is_open) {
 		buildputs("Using lowlevel.library for joystick input\n");
+	}
+	for (int i = 0; i < (int)MAX_KEYCONV; i++)
+	{
+		struct InputEvent ie;
+		UBYTE bufascii;
+
+		// skip the navigation and editing keys
+		if (i >= 0x41 && i <= 0x49)
+			continue;
+
+		// keypad numbers
+		if ((i == 0x0F) || (i >= 0x1D && i <= 0x1F) || (i >= 0x2D && i <= 0x2F) || (i >= 0x3D && i <= 0x3F))
+			continue;
+
+		ie.ie_Class = IECLASS_RAWKEY;
+		ie.ie_SubClass = 0;
+		ie.ie_Code = i;
+		ie.ie_Qualifier = 0;
+		ie.ie_EventAddress = NULL;
+
+		if (MapRawKey(&ie, (STRPTR)&bufascii, sizeof(bufascii), NULL) > 0)
+		{
+			keyascii[i] = bufascii;
+			//printf("%s rawkey %x name %c\n", __FUNCTION__, i, bufascii);
+		}
+		else
+		{
+			keyascii[i] = 0;
+		}
+
+		ie.ie_Qualifier = IEQUALIFIER_LSHIFT;
+		if (MapRawKey(&ie, (STRPTR)&bufascii, sizeof(bufascii), NULL) > 0)
+		{
+			keyascii_shift[i] = bufascii;
+			//printf("%s rawkey %x shifted name %c\n", __FUNCTION__, i, bufascii);
+		}
+		else
+		{
+			keyascii_shift[i] = 0;
+		}
 	}
 
 	return 0;
@@ -1827,8 +1867,6 @@ int handleevents(void)
 				if (eatosdinput) {
 					eatosdinput = 0;
 				} else if (press) {
-#ifndef __AROS__
-					// quick and dirty raw key to vanilla key conversion
 					int ch = 0;
 					if ((qualifier & (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT /*| IEQUALIFIER_CAPSLOCK*/)) != 0) {
 						ch = keyascii_shift[code];
@@ -1848,24 +1886,6 @@ int handleevents(void)
 							keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
 						}
 					}
-#else
-					// map the key to ascii
-					struct InputEvent ie;
-					ie.ie_Class = IECLASS_RAWKEY;
-					ie.ie_SubClass = 0;
-					ie.ie_Code = imsg->Code;
-					ie.ie_Qualifier = imsg->Qualifier;
-					ie.ie_EventAddress = *((APTR **)imsg->IAddress);
-					unsigned char bufascii;
-					if (KeymapBase && MapRawKey(&ie, (STRPTR)&bufascii, sizeof(bufascii), NULL) > 0) {
-						if (OSD_HandleChar(bufascii)) {
-							if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
-								keyasciififo[keyasciififoend] = bufascii;
-								keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
-							}
-						}
-					}
-#endif
 				}
 			}
 			break;
