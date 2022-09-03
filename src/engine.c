@@ -39,9 +39,7 @@ void *kmalloc(bsize_t size) { return(Bmalloc(size)); }
 void kfree(void *buffer) { Bfree(buffer); }
 
 void loadvoxel(int voxindex) { (void)voxindex; }
-#ifndef __AMIGA__
 int tiletovox[MAXTILES];
-#endif
 int usevoxels = 1;
 #ifdef ENGINE_19960925
 void qloadvoxel(int32_t nVoxel);
@@ -57,17 +55,13 @@ int novoxmips = 0;
 #define MAXYSIZ 256
 #define MAXZSIZ 255
 #define MAXVOXMIPS 5
-#ifndef __AMIGA__
 intptr_t voxoff[MAXVOXELS][MAXVOXMIPS];
 unsigned char voxlock[MAXVOXELS][MAXVOXMIPS];
 int voxscale[MAXVOXELS];
-#endif
 
 static int ggxinc[MAXXSIZ+1], ggyinc[MAXXSIZ+1];
-#ifndef __AMIGA__
 static int lowrecip[1024], nytooclose, nytoofar;
 static unsigned int distrecip[65536];
-#endif
 
 static int *lookups = NULL;
 int dommxoverlay = 1, beforedrawrooms = 1;
@@ -2873,7 +2867,6 @@ static void drawalls(int bunch)
 //
 // drawvox
 //
-#ifndef __AMIGA__
 static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 		  int daxscale, int dayscale, unsigned char daindex,
 		  signed char dashade, unsigned char dapal, int *daumost, int *dadmost)
@@ -3097,7 +3090,6 @@ static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 
 	enddrawing();	//}}}
 }
-#endif
 
 
 //
@@ -3131,7 +3123,6 @@ static void drawsprite(int snum)
 	spritenum = tspr->owner;
 	cstat = tspr->cstat;
 
-#ifndef __AMIGA__
 	if ((cstat&48)==48) vtilenum = tilenum;	// if the game wants voxels, it gets voxels
 	else if ((cstat&48)!=48 && (usevoxels) && (tiletovox[tilenum] != -1)
 #if USE_POLYMOST && USE_OPENGL
@@ -3141,7 +3132,6 @@ static void drawsprite(int snum)
 		vtilenum = tiletovox[tilenum];
 		cstat |= 48;
 	}
-#endif
 
 	if ((cstat&48) != 48)
 	{
@@ -3888,7 +3878,6 @@ static void drawsprite(int snum)
 			//Draw it!
 		ceilspritescan(lx,rx-1);
 	}
-#ifndef __AMIGA__
 	else if ((cstat&48) == 48)
 	{
 		int nxrepeat, nyrepeat;
@@ -4019,7 +4008,6 @@ static void drawsprite(int snum)
 #endif
 		drawvox(tspr->x,tspr->y,tspr->z,i,(int)tspr->xrepeat,(int)tspr->yrepeat,vtilenum,tspr->shade,tspr->pal,lwall,swall);
 	}
-#endif
 
 	if (automapping == 1) show2dsprite[spritenum>>3] |= pow2char[spritenum&7];
 }
@@ -5054,11 +5042,13 @@ static void dosetaspect(void)
 			if (j != 0) j = mulscale16((int)radarang[k+1]-(int)radarang[k],j);
 			radarang2[i] = (short)(((int)radarang[k]+j)>>6);
 		}
-#ifndef __AMIGA__
+#ifdef __AMIGA__
+		for(i=1;i<65536;i++) distrecip[i] = (int)((float)xdimen * 0x100000 / i);
+#else
 		for(i=1;i<65536;i++) distrecip[i] = divscale20(xdimen,i);
+#endif
 		nytooclose = xdimen*2100;
 		nytoofar = 65536*16384-1048576;
-#endif
 	}
 }
 
@@ -5684,7 +5674,6 @@ int initengine(void)
 	parallaxtype = 2; parallaxyoffs = 0L; parallaxyscale = 65536;
 	showinvisibility = 0;
 
-#ifndef __AMIGA__
 	for(i=1;i<1024;i++) lowrecip[i] = ((1<<24)-1)/i;
 	for(i=0;i<MAXVOXELS;i++)
 		for(j=0;j<MAXVOXMIPS;j++)
@@ -5695,7 +5684,6 @@ int initengine(void)
 	for(i=0;i<MAXTILES;i++)
 		tiletovox[i] = -1;
 	clearbuf(&voxscale[0],sizeof(voxscale)>>2,65536L);
-#endif
 
 #if USE_POLYMOST
 	polymost_initosdfuncs();
@@ -8250,9 +8238,6 @@ void copytilepiece(int tilenume1, int sx1, int sy1, int xsiz, int ysiz,
 //
 int qloadkvx(int voxindex, char *filename)
 {
-#ifdef __AMIGA__
-	return -1;
-#else
 	int i, fil, dasiz, lengcnt, lengtot;
 	unsigned char *ptr;
 
@@ -8283,7 +8268,6 @@ int qloadkvx(int voxindex, char *filename)
 	voxmodels[voxindex] = voxload(filename);
 #endif
 	return 0;
-#endif
 }
 
 

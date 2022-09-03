@@ -191,8 +191,10 @@ extern void slopevlin(REG(a0,void *),REG(a1,int),REG(a2,void *),REG(d0,int),REG(
 extern void settransnormal(void);
 extern void settransreverse(void);
 
-static inline void setupdrawslab(int dabpl, void *pal) {} // TODO
-static inline void drawslab(int dx, int v, int dy, int vi, void *vptr, void *p) {} // TODO
+extern void setupdrawslab(int dabpl, void *pal);
+extern void drawslab(REG(d0,int dx), REG(d1, unsigned int v), REG(d2, unsigned short dy), REG(d3, int vi), REG(a0, void *vptr), REG(a1, void *p));
+//static inline void setupdrawslab(int dabpl, void *pal) {} // TODO
+//static inline void drawslab(int dx, int v, int dy, int vi, void *vptr, void *p) {} // TODO
 static inline void stretchhline(void *p0, int u, int cnt, int uinc, void *rptr, void *p) {} // unused
 
 #else				// GCC || MSVC
