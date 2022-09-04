@@ -62,6 +62,9 @@ int voxscale[MAXVOXELS];
 static int ggxinc[MAXXSIZ+1], ggyinc[MAXXSIZ+1];
 static int lowrecip[1024], nytooclose, nytoofar;
 static unsigned int distrecip[65536];
+#ifdef __AMIGA__
+static int voxxdimen = -1;
+#endif
 
 static int *lookups = NULL;
 int dommxoverlay = 1, beforedrawrooms = 1;
@@ -5043,7 +5046,16 @@ static void dosetaspect(void)
 			radarang2[i] = (short)(((int)radarang[k]+j)>>6);
 		}
 #ifdef __AMIGA__
-		for(i=1;i<65536;i++) distrecip[i] = (int)((float)xdimen * 0x100000 / i);
+#ifndef ENGINE_19960925
+		if (!offscreenrendering)
+#endif
+		{
+			if (xdimen != voxxdimen)
+			{
+				voxxdimen = xdimen;
+				for(i=1;i<65536;i++) distrecip[i] = (int)((float)xdimen * 0x100000 / i);
+			}
+		}
 #else
 		for(i=1;i<65536;i++) distrecip[i] = divscale20(xdimen,i);
 #endif
