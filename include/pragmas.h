@@ -3652,7 +3652,7 @@ static inline int getfpcr(void)
 	"fmul.s  #796917760,fp0" "\n\t" \
 	"fmul.l  " #a ",fp0" "\n\t" \
 	"fmove.l fp0," #a "\n\t" \
-	"jmp 2f" "\n\t" \
+	"bra.b 2f" "\n\t" \
 	"1:" "\n\t" \
 	"smi     " #a "\n\t" \
 	"extb.l  " #a "\n\t" \
@@ -3661,6 +3661,13 @@ static inline int getfpcr(void)
 #define MULSL_CLOBBER "fp0",
 
 #define DIVSL(a,b,c) \
+	"tst.l    " #b "\n\t" \
+	"bne.b    2f" "\n\t" \
+	"tst.l    " #c "\n\t" \
+	"blt.b    2f" "\n\t" \
+	"divs.l  " #a "," #c "\n\t" \
+	"bra.b    3f" "\n\t" \
+	"2:" "\n\t" \
 	"fmove.l  " #b ",fp0" "\n\t" \
 	"fmul.s   #1333788672,fp0" "\n\t" \
 	"fmove.l  " #c ",fp1" "\n\t" \
@@ -3671,7 +3678,8 @@ static inline int getfpcr(void)
 	"fadd.x   fp1,fp0" "\n\t" \
 	"fdiv.l   " #a ",fp0" "\n\t" \
 	"fintrz.x fp0" "\n\t" \
-	"fmove.l  fp0," #c
+	"fmove.l  fp0," #c "\n\t" \
+	"3:"
 
 #define DIVSL_CLOBBER "fp0", "fp1",
 
