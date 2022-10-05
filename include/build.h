@@ -53,12 +53,22 @@ extern "C" {
 #define MAXSPRITES MAXSPRITESV8
 #endif
 
+#ifdef __AMIGA__
+#define MAXTILES 6144
+#define MAXVOXELS 80
+#else
 #define MAXTILES 9216
 #define MAXVOXELS 4096
+#endif
 #define MAXSTATUS 1024
 #define MAXPLAYERS 16
+#ifdef __AMIGA__
+#define MAXXDIM 1600
+#define MAXYDIM 1200
+#else
 #define MAXXDIM 2880
 #define MAXYDIM 1800
+#endif
 #define MAXPALOOKUPS 256
 #define MAXPSKYTILES 256
 #define MAXSPRITESONSCREEN 1024

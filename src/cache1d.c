@@ -60,7 +60,11 @@ static int kzipopen(const char *filnam)
 //           After calling uninitcache, it is still ok to call allocache
 //           without first calling initcache.
 
+#ifdef __AMIGA__
+#define MAXCACHEOBJECTS 6144 
+#else
 #define MAXCACHEOBJECTS 9216
+#endif
 
 static int cachesize = 0;
 int cachecount = 0;
