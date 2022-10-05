@@ -39,8 +39,10 @@ void *kmalloc(bsize_t size) { return(Bmalloc(size)); }
 void kfree(void *buffer) { Bfree(buffer); }
 
 void loadvoxel(int voxindex) { (void)voxindex; }
+#ifndef __AMIGA__
 int tiletovox[MAXTILES];
 int usevoxels = 1;
+#endif
 #ifdef ENGINE_19960925
 void qloadvoxel(int32_t nVoxel);
 #define kloadvoxel qloadvoxel
@@ -57,7 +59,9 @@ int novoxmips = 0;
 #define MAXVOXMIPS 5
 intptr_t voxoff[MAXVOXELS][MAXVOXMIPS];
 unsigned char voxlock[MAXVOXELS][MAXVOXMIPS];
+#ifndef __AMIGA__
 int voxscale[MAXVOXELS];
+#endif
 
 static int ggxinc[MAXXSIZ+1], ggyinc[MAXXSIZ+1];
 static int lowrecip[1024], nytooclose, nytoofar;
@@ -2907,13 +2911,17 @@ static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 	if (!davoxptr && i > 0) { davoxptr = (unsigned char *)voxoff[daindex][0]; i = 0; }
 	if (!davoxptr) return;
 
+#ifndef __AMIGA__
 	if (voxscale[daindex] == 65536)
+#endif
 		{ daxscale <<= (i+8); dayscale <<= (i+8); }
+#ifndef __AMIGA__
 	else
 	{
 		daxscale = mulscale8(daxscale<<i,voxscale[daindex]);
 		dayscale = mulscale8(dayscale<<i,voxscale[daindex]);
 	}
+#endif
 
 	odayscale = dayscale;
 	daxscale = mulscale16(daxscale,xyaspect);
@@ -3127,6 +3135,7 @@ static void drawsprite(int snum)
 	cstat = tspr->cstat;
 
 	if ((cstat&48)==48) vtilenum = tilenum;	// if the game wants voxels, it gets voxels
+#ifndef __AMIGA__
 	else if ((cstat&48)!=48 && (usevoxels) && (tiletovox[tilenum] != -1)
 #if USE_POLYMOST && USE_OPENGL
 		 && (!(spriteext[tspr->owner].flags&SPREXT_NOTMD))
@@ -3135,6 +3144,7 @@ static void drawsprite(int snum)
 		vtilenum = tiletovox[tilenum];
 		cstat |= 48;
 	}
+#endif
 
 	if ((cstat&48) != 48)
 	{
@@ -3939,16 +3949,20 @@ static void drawsprite(int snum)
 
 		longptr = (int *)voxoff[vtilenum][0];
 
+#ifndef __AMIGA__
 		if (voxscale[vtilenum] == 65536)
+#endif
 		{
 			nxrepeat = (((int)tspr->xrepeat)<<16);
 			nyrepeat = (((int)tspr->yrepeat)<<16);
 		}
+#ifndef __AMIGA__
 		else
 		{
 			nxrepeat = ((int)tspr->xrepeat)*voxscale[vtilenum];
 			nyrepeat = ((int)tspr->yrepeat)*voxscale[vtilenum];
 		}
+#endif
 
 		if (!(cstat&128)) tspr->z -= mulscale22(B_LITTLE32(longptr[5]),nyrepeat);
 		yoff = (int)((signed char)((picanm[sprite[tspr->owner].picnum]>>16)&255))+((int)tspr->yoffset);
@@ -5693,9 +5707,11 @@ int initengine(void)
 			voxoff[i][j] = 0L;
 			voxlock[i][j] = 200;
 		}
+#ifndef __AMIGA__
 	for(i=0;i<MAXTILES;i++)
 		tiletovox[i] = -1;
 	clearbuf(&voxscale[0],sizeof(voxscale)>>2,65536L);
+#endif
 
 #if USE_POLYMOST
 	polymost_initosdfuncs();

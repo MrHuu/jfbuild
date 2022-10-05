@@ -319,8 +319,10 @@ extern unsigned char palfadedelta;
 
 extern int dommxoverlay, novoxmips;
 
+#ifndef __AMIGA__
 extern int tiletovox[MAXTILES];
 extern int usevoxels, voxscale[MAXVOXELS];
+#endif
 #if USE_POLYMOST && USE_OPENGL
 extern int usemodels, usehightile;
 #endif

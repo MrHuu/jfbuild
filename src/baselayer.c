@@ -106,11 +106,13 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 		else { novoxmips = (atoi(parm->parms[0]) != 0); }
 		return OSDCMD_OK;
 	}
+#ifndef __AMIGA__
 	else if (!Bstrcasecmp(parm->name, "usevoxels")) {
 		if (showval) { buildprintf("usevoxels is %d\n", usevoxels); }
 		else { usevoxels = (atoi(parm->parms[0]) != 0); }
 		return OSDCMD_OK;
 	}
+#endif
 #if defined(DEBUGGINGAIDS) && USE_OPENGL
 	else if (!Bstrcasecmp(parm->name, "debuggllogseverity")) {
 		const char *levels[] = {"none", "notification", "low", "medium", "high"};
@@ -133,7 +135,9 @@ int baselayer_init(void)
 	OSD_RegisterFunction("screencaptureformat","screencaptureformat: sets the output format for screenshots (TGA, PCX, PNG)",osdcmd_vars);
 
 	OSD_RegisterFunction("novoxmips","novoxmips: turn off/on the use of mipmaps when rendering 8-bit voxels",osdcmd_vars);
+#ifndef __AMIGA__
 	OSD_RegisterFunction("usevoxels","usevoxels: enable/disable automatic sprite->voxel rendering",osdcmd_vars);
+#endif
 
 #if USE_POLYMOST
 	OSD_RegisterFunction("setrendermode","setrendermode <number>: sets the engine's rendering mode.\n"
