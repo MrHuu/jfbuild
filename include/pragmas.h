@@ -3624,7 +3624,7 @@ static __inline void swapchar2(void *a, void *b, int s)
 #define wo(x)	((int16_t)(x))		// word cast
 #define by(x)	((int8_t)(x))		// byte cast
 
-#if defined __AMIGA__
+#if defined(__AMIGA__) && !defined(__vita__) && !defined(__3DS__)
 
 #ifdef __mc68060__
 
@@ -4266,7 +4266,7 @@ static inline int kmax(int a, int b) { if ((signed int)a < (signed int)b) return
 
 static inline int sqr(int eax) { return (eax) * (eax); }
 
-#if defined __AMIGA__
+#if defined(__AMIGA__) && !defined(__vita__) && !defined(__3DS__)
 
 static inline int scale(int eax, int edx, int ecx) __attribute__((always_inline));
 static inline int scale(int eax, int edx, int ecx)
@@ -4475,7 +4475,7 @@ static inline int boundmulscale(int a, int d, int c)
 #undef by
 #undef _scaler
 
-#ifdef __AMIGA__
+#if defined(__AMIGA__) && !defined(__vita__) && !defined(__3DS__)
 
 static inline void qinterpolatedown16(void *eax, int ecx, int edx, int esi)
 {
@@ -4734,6 +4734,30 @@ void copybufreverse(void *S, void *D, int c);
 
 #endif
 
+#endif
+
+#if defined(__vita__) || defined(__3DS__)
+inline int mulscale16r(int a, int b)
+{
+    int64_t acc = 1<<(16-1);
+    acc += ((int64_t)a) * b;
+    return (int)(acc>>16);
+}
+
+inline int mulscale30r(int a, int b)
+{
+    int64_t acc = 1<<(30-1);
+    acc += ((int64_t)a) * b;
+    return (int)(acc>>30);
+}
+
+inline int dmulscale30r(int a, int b, int c, int d)
+{
+    int64_t acc = 1<<(30-1);
+    acc += ((int64_t)a) * b;
+    acc += ((int64_t)c) * d;
+    return (int)(acc>>30);
+}
 #endif
 
 #ifdef __cplusplus

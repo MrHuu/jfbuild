@@ -49,7 +49,7 @@
 #  include <sys/sysctl.h> // for sysctl() to get path to executable
 #endif
 
-#if defined(__AROS__) || defined(__AMIGA__)
+#if defined(__AROS__) || defined(__AMIGA__) && !defined(__vita__) && !defined(__3DS__)
 #  include <proto/exec.h> // AvailMem
 #  define DEVICES_TIMER_H
 #  include <proto/dos.h>
@@ -384,7 +384,11 @@ char *Bgethomedir(void)
 char *Bgetappdir(void)
 {
     char *dir = NULL;
-    
+#ifdef __3DS__
+	dir = strdup("sdmc:/3ds/NBlood");
+#elif defined __vita__
+	dir = strdup("ux0:data/NBlood");
+#else
 #ifdef _WIN32
 	TCHAR appdir[MAX_PATH];
     
@@ -431,7 +435,7 @@ char *Bgetappdir(void)
         dir = strdup(buf);
     }
 #endif
-    
+#endif
     return dir;
 }
 
@@ -851,6 +855,9 @@ char *Bstrupr(char *s)
 //
 size_t Bgetsysmemsize(void)
 {
+#if defined(__vita__) || defined(__3DS__)
+	return 0x7fffffff;
+#else
 #ifdef _WIN32
 	size_t siz = 0x7fffffff;
 	
@@ -882,6 +889,7 @@ size_t Bgetsysmemsize(void)
 	return (size_t)AvailMem(MEMF_FAST|MEMF_TOTAL);
 #else
 	return 0x7fffffff;
+#endif
 #endif
 }
 

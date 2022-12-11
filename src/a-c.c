@@ -316,7 +316,7 @@ void mmxoverlay() { }
 
 #endif
 
-#ifdef __AMIGA__
+#if defined(__AMIGA__) && !defined(__vita__) && !defined(__3DS__)
 static int bpl;
 static unsigned char *gpal;
 

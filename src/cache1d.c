@@ -350,6 +350,7 @@ int findfrompath(const char *fn, char **where)
 			return 0;
 		}
 	}
+
 	free(pfn); free(ffn);
 	return -1;
 }

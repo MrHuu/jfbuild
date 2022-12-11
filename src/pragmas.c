@@ -174,7 +174,7 @@ void copybufreverse(void *S, void *D, int c)
 // Microsoft C Inline Assembler version
 //
 
-#elif defined(__AMIGA__)
+#elif defined(__AMIGA__) && !defined(__vita__) && !defined(__3DS__)
 
 //
 // Amiga 68k C Inline Assembler version

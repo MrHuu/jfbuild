@@ -15,7 +15,7 @@
  * the forthcoming GLSL 2 blitter. Also, on a Mac Mini G4 with hampered
  * AGP under Debian 8, surface blit is fast and the renderer slower.
  */
-//#define SDLAYER_USE_RENDERER
+#define SDLAYER_USE_RENDERER
 
 // have stdio.h declare vasprintf
 #ifndef _GNU_SOURCE
@@ -72,7 +72,7 @@ static SDL_Window *sdl_window;
 static SDL_Renderer *sdl_renderer;	// For non-GL 8-bit mode output.
 static SDL_Texture *sdl_texture;	// For non-GL 8-bit mode output.
 #else
-static SDL_Surface *sdl_surface;	// For non-GL 8-bit mode output.
+static SDL_Surface *sdl_surface = NULL;	// For non-GL 8-bit mode output.
 #endif
 static unsigned char *frame;
 int xres=-1, yres=-1, bpp=0, fullscreen=0, bytesperline, imageSize;
@@ -280,8 +280,145 @@ void wm_setwindowtitle(const char *name)
 //
 //
 
+#ifdef VITA
+#include <vitasdk.h>
+#include <vita2d.h>
+uint32_t green;
+uint32_t white;
+uint32_t yellow;
+
+typedef struct{
+    int x;
+    int y;
+    uint32_t *color;
+    char text[256];
+} credits_voice;
+
+int get_x_text(vita2d_pgf *font, char *text) {
+    return (960 - vita2d_pgf_text_width(font, 1.0, text)) / 2;
+}
+
+credits_voice intro[] = {
+    {0, 100, &yellow, "jfblood-vita v.1.1"},
+    {0, 120, &white,  "Port by Rinnegatamante"},
+    {0, 180, &yellow, "Select a game to launch:"},
+	{0, 360, &yellow, "Credits:"},
+	{0, 380, &white, "nukeykt for the original NBlood"},
+	{0, 400, &white, "BSzili for the backport of NBlood to JFBuild"},
+	{0, 420, &white, "Once13one for the Livearea assets"},
+	{0, 440, &white, "CatoTheYounger for betatesting the homebrew"},
+    {0, 480, &yellow, "Thanks to my distinguished Patroners:"},
+    {0, 500, &white,  "@Sarkies_Proxy - drd70f14 - Delon5 - Freddy Parra - TheVita3K Project - mmtechnodrone"},
+	{0, 520, &white,  "Badmanwazzy37 - Shin Megami - sputnik - Heraldian Despot - Jacob Martinez"},
+};
+
+char *games[] = {
+	"Blood",
+	"Cryptic Passage"
+};
+
+int psp2_main(unsigned int argc, void *argv) {
+    SceAppUtilInitParam appUtilParam;
+    SceAppUtilBootParam appUtilBootParam;
+	memset(&appUtilParam, 0, sizeof(SceAppUtilInitParam));
+    memset(&appUtilBootParam, 0, sizeof(SceAppUtilBootParam));
+    sceAppUtilInit(&appUtilParam, &appUtilBootParam);
+	SceCommonDialogConfigParam cmnDlgCfgParam;
+	sceCommonDialogConfigParamInit(&cmnDlgCfgParam);
+	sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, (int *)&cmnDlgCfgParam.language);
+	sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_ENTER_BUTTON, (int *)&cmnDlgCfgParam.enterButtonAssign);
+    sceCommonDialogSetConfigParam(&cmnDlgCfgParam);
+	
+	SceIoStat st1, st2, st3;
+	uint32_t oldpad;
+	SceCtrlData pad;
+	int k = 0;
+	if ((sceIoGetstat("ux0:/data/NBlood/BLOOD.INI", &st1) >= 0 || sceIoGetstat("ux0:/data/NBlood/BLOOD.BKP", &st2) >= 0) && sceIoGetstat("ux0:/data/NBlood/CRYPTIC.INI", &st3) >= 0) {
+		vita2d_init();
+		vita2d_set_vblank_wait(0);
+		vita2d_pgf *font = vita2d_load_default_pgf();
+		white = RGBA8(0xFF, 0xFF, 0xFF, 0xFF);
+		yellow = RGBA8(0xFF, 0xFF, 0x00, 0xFF);
+		green = RGBA8(0x00, 0xFF, 0x00, 0xFF);
+	
+		int j, z;
+		for (j=0;j<sizeof(intro) / sizeof(*intro);j++){
+			intro[j].x = get_x_text(font, intro[j].text);
+		}
+	
+		for (;;) {
+			sceCtrlPeekBufferPositive(0, &pad, 1);
+			vita2d_start_drawing();
+			vita2d_clear_screen();
+			for (z=0;z<sizeof(intro) / sizeof(*intro);z++) {
+				vita2d_pgf_draw_text(font, intro[z].x, intro[z].y, *intro[z].color, 1.0, intro[z].text);
+			}
+			for (z=0;z<2;z++) {
+				int y = 200 + z * 20;
+				if (y <= 400 && y >= 200) {
+					vita2d_pgf_draw_text(font, get_x_text(font, games[z]), y, k == z ? green : white, 1.0, games[z]);
+				}
+			}
+			vita2d_end_drawing();
+			vita2d_wait_rendering_done();
+			vita2d_swap_buffers();
+			if ((pad.buttons & SCE_CTRL_DOWN) && (!(oldpad & SCE_CTRL_DOWN))) {
+				k = (k + 1) % 2;
+			} else if ((pad.buttons & SCE_CTRL_UP) && (!(oldpad & SCE_CTRL_UP))) {
+				k--;
+				if (k < 0) k = 1;
+			} else if ((pad.buttons & SCE_CTRL_CROSS) && (!(oldpad & SCE_CTRL_CROSS))) {
+				break;
+			}
+			oldpad = pad.buttons;
+		}
+		vita2d_wait_rendering_done();
+		vita2d_fini();
+	}
+	
+	if (k == 0) // Blood
+		sceIoRename("ux0:/data/NBlood/BLOOD.BKP", "ux0:/data/NBlood/BLOOD.INI");
+	else
+		sceIoRename("ux0:/data/NBlood/BLOOD.INI", "ux0:/data/NBlood/BLOOD.BKP");
+	
+    scePowerSetArmClockFrequency(444);
+    scePowerSetBusClockFrequency(222);
+    scePowerSetGpuClockFrequency(222);
+    scePowerSetGpuXbarClockFrequency(166);
+    sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
+    buildkeytranslationtable();
+	
+	if (SDL_Init(SDL_INIT_EVERYTHING)) {
+		buildprintf("Early initialisation of SDL failed! (%s)\n", SDL_GetError());
+		return 1;
+	}
+
+    baselayer_init();
+    
+	return app_main(argc, (char const * const*)argv);
+}
+
+/*int crasher(unsigned int argc, void *argv) {
+	uint32_t *nullptr = NULL;
+	for (;;) {
+		SceCtrlData pad;
+		sceCtrlPeekBufferPositive(0, &pad, 1);
+		if (pad.buttons & SCE_CTRL_SELECT) *nullptr = 0;
+		sceKernelDelayThread(100);
+	}
+}*/
+#endif
+
 int main(int argc, char *argv[])
 {
+#ifdef VITA
+	SceUID main_thread = sceKernelCreateThread("jfblood", psp2_main, 0x40, 0x800000, 0, 0, NULL);
+	if (main_thread >= 0){
+		sceKernelStartThread(main_thread, 0, NULL);
+		sceKernelWaitThreadEnd(main_thread, NULL, NULL);
+	}
+    return 0;
+#endif
 	int r;
 
 	buildkeytranslationtable();
@@ -354,7 +491,7 @@ int initsystem(void)
 	atexit(uninitsystem);
 
 #if USE_OPENGL
-	if (getenv("BUILD_NOGL")) {
+	/*if (getenv("BUILD_NOGL")) {
 		buildputs("OpenGL disabled.\n");
 		nogl = 1;
 	} else {
@@ -362,7 +499,7 @@ int initsystem(void)
 		if (nogl) {
 			buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		}
-	}
+	}*/
 
 	OSD_RegisterFunction("glswapinterval", "glswapinterval: frame swap interval for OpenGL modes (0 = no vsync, max 2)", set_glswapinterval);
 #endif
@@ -411,7 +548,6 @@ void debugprintf(const char *f, ...)
 	Bvfprintf(stderr, f, va);
 	va_end(va);
 #endif
-	(void)f;
 }
 
 
@@ -763,7 +899,7 @@ static char modeschecked=0;
 void getvalidmodes(void)
 {
 	static int defaultres[][2] = {
-		{1920,1200},{1920,1080},{1600,1200},{1680,1050},{1600,900},{1400,1050},{1440,900},{1366,768},
+		{1920,1200},{960,544},{1600,1200},{1680,1050},{1600,900},{1400,1050},{1440,900},{1366,768},
 		{1280,1024},{1280,960},{1280,800},{1280,720},{1152,864},{1024,768},{800,600},{640,480},
 		{640,400},{512,384},{480,360},{400,300},{320,240},{320,200},{0,0}
 	};
@@ -972,7 +1108,7 @@ int setvideomode(int x, int y, int c, int fs)
 		flags = SDL_WINDOW_HIDDEN;
 
 #if USE_OPENGL
-		if (!nogl) {
+/*		if (!nogl) {
 #if (USE_OPENGL == USE_GLES2)
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
@@ -995,13 +1131,12 @@ int setvideomode(int x, int y, int c, int fs)
 #endif
 
 			flags |= SDL_WINDOW_OPENGL;
-		}
+		}*/
 #endif
 
 		if (fs & 1) {
 			if (c > 8) flags |= SDL_WINDOW_FULLSCREEN;
 			else flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-			flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 		}
 
 		sdl_window = SDL_CreateWindow(wintitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, x, y, flags);
@@ -1015,13 +1150,12 @@ int setvideomode(int x, int y, int c, int fs)
 				continue;
 			}
 #endif
-
 			return -1;
 		}
 		break;
 	} while (1);
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(VITA)
 	{
 		SDL_Surface *icon = loadappicon();
 		SDL_SetWindowIcon(sdl_window, icon);
@@ -1057,6 +1191,7 @@ int setvideomode(int x, int y, int c, int fs)
 				return -1;
 			}
 #else
+
 			// 8-bit software with no GL shader blitting goes via the SDL rendering apparatus.
 			sdl_surface = SDL_CreateRGBSurface(0, x, y, 8, 0, 0, 0, 0);
 			if (!sdl_surface) {
@@ -1067,26 +1202,23 @@ int setvideomode(int x, int y, int c, int fs)
 #if USE_OPENGL
 		} else {
 			// Prepare the GLSL shader for 8-bit blitting.
-			int winx = x, winy = y;
-			if (flags & SDL_WINDOW_FULLSCREEN_DESKTOP) {
-				SDL_DisplayMode d;
-				if (SDL_GetWindowDisplayMode(sdl_window, &d) == 0)
-					winx = d.w, winy = d.h;
-			}
-			sdl_glcontext = SDL_GL_CreateContext(sdl_window);
+			baselayer_setupopengl();
+			//sdl_glcontext = SDL_GL_CreateContext(sdl_window);
+			glbuild_prepare_8bit_shader(&gl8bit, x, y, pitch);
+			/*
 			if (!sdl_glcontext) {
 				buildprintf("Error creating OpenGL context: %s\n", SDL_GetError());
 				nogl = 1;
 			} else if (baselayer_setupopengl()) {
 				nogl = 1;
-			} else if (glbuild_prepare_8bit_shader(&gl8bit, x, y, pitch, winx, winy) < 0) {
+			} else if (glbuild_prepare_8bit_shader(&gl8bit, x, y, pitch) < 0) {
 				nogl = 1;
 			}
 			if (nogl) {
 				// Try again but without OpenGL.
 				buildputs("Falling back to non-OpenGL render.\n");
 				return setvideomode(x, y, c, fs);
-			}
+			}*/
 		}
 #endif
 
@@ -1109,11 +1241,11 @@ int setvideomode(int x, int y, int c, int fs)
 
 	} else {
 #if USE_OPENGL
-		sdl_glcontext = SDL_GL_CreateContext(sdl_window);
+		/*sdl_glcontext = SDL_GL_CreateContext(sdl_window);
 		if (!sdl_glcontext) {
 			buildprintf("Error creating OpenGL context: %s\n", SDL_GetError());
 			return -1;
-		}
+		}*/
 
 		if (baselayer_setupopengl()) {
 			shutdownvideo();
@@ -1142,11 +1274,11 @@ int setvideomode(int x, int y, int c, int fs)
 	videomodereset = 0;
 	OSD_ResizeDisplay(xres,yres);
 #if USE_OPENGL
-	if (sdl_glcontext) {
+	/*if (sdl_glcontext) {
 		if (SDL_GL_SetSwapInterval(glswapinterval) < 0) {
 			buildputs("note: OpenGL swap interval could not be changed\n");
 		}
-	}
+	}*/
 #endif
 
 	gammabrightness = (SDL_SetWindowBrightness(sdl_window, curgamma) == 0);
@@ -1204,7 +1336,7 @@ void showframe(void)
 			glbuild_update_8bit_frame(&gl8bit, frame, xres, yres, bytesperline);
 			glbuild_draw_8bit_frame(&gl8bit);
 		}
-
+		
 		SDL_GL_SwapWindow(sdl_window);
 		return;
 	}
@@ -1316,19 +1448,19 @@ int setgamma(float gamma)
 //
 int loadgldriver(const char *soname)
 {
-	const char *name = soname;
+	/*const char *name = soname;
 	if (!name) {
 		name = "system OpenGL library";
 	}
 
 	buildprintf("Loading %s\n", name);
-	if (SDL_GL_LoadLibrary(soname)) return -1;
+	if (SDL_GL_LoadLibrary(soname)) return -1;*/
 	return 0;
 }
 
 int unloadgldriver(void)
 {
-	SDL_GL_UnloadLibrary();
+	//SDL_GL_UnloadLibrary();
 	return 0;
 }
 
@@ -1337,12 +1469,12 @@ int unloadgldriver(void)
 //
 void *getglprocaddress(const char *name, int UNUSED(ext))
 {
-	return (void*)SDL_GL_GetProcAddress(name);
+	return (void*)vglGetProcAddress(name);
 }
 #endif
 
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(VITA)
 extern struct sdlappicon sdlappicon;
 static SDL_Surface * loadappicon(void)
 {
@@ -1366,6 +1498,7 @@ static SDL_Surface * loadappicon(void)
 //
 //
 
+int old_up = 0, old_down = 0;
 
 //
 // handleevents() -- process the SDL message queue
@@ -1386,7 +1519,17 @@ int handleevents(void)
 	keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1)); \
 		} \
 }
-
+	if (old_up)
+		if (old_up > 3)
+			joyb &= ~(1 << SDL_CONTROLLER_BUTTON_DPAD_UP);
+		else
+			old_up++;
+	if (old_down)
+		if (old_down > 3)
+			joyb &= ~(1 << SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+		else
+			old_down++;
+	
 	while (SDL_PollEvent(&ev)) {
 		switch (ev.type) {
 			case SDL_TEXTINPUT:
@@ -1415,7 +1558,7 @@ int handleevents(void)
 					grabmouse(!mouseacquired);
 					break;
 				}
-				// else, fallthrough
+				// else: fallthrough
 			case SDL_KEYDOWN:
 				code = keytranslation[ev.key.keysym.scancode].normal;
 				control = keytranslation[ev.key.keysym.scancode].controlchar;
@@ -1473,7 +1616,7 @@ int handleevents(void)
 					rv=-1;
 				}
 				break;
-
+			/*
 			case SDL_MOUSEBUTTONDOWN:
 			case SDL_MOUSEBUTTONUP:
 				switch (ev.button.button) {
@@ -1517,7 +1660,7 @@ int handleevents(void)
 					}
 				}
 				break;
-
+			*/
 			case SDL_CONTROLLERAXISMOTION:
 				if (appactive) {
 					joyaxis[ ev.caxis.axis ] = ev.caxis.value;
@@ -1525,12 +1668,24 @@ int handleevents(void)
 				break;
 
 			case SDL_CONTROLLERBUTTONDOWN:
+				if (appactive) {
+					if (ev.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
+						if (!old_up)
+							old_up = 1;
+					}else if (ev.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN)	{
+						if (!old_down)
+							old_down = 1;
+					}
+					joyb |= 1 << ev.cbutton.button;
+				}
+				break;
 			case SDL_CONTROLLERBUTTONUP:
 				if (appactive) {
-					if (ev.cbutton.state == SDL_PRESSED)
-						joyb |= 1 << ev.cbutton.button;
-					else
-						joyb &= ~(1 << ev.cbutton.button);
+					joyb &= ~(1 << ev.cbutton.button);
+					if (ev.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP)
+						old_up = 0;
+					else if (ev.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN)
+						old_down = 0;
 				}
 				break;
 
@@ -1675,7 +1830,7 @@ static int buildkeytranslationtable(void)
 #if USE_OPENGL
 static int set_glswapinterval(const osdfuncparm_t *parm)
 {
-	int interval;
+	/*int interval;
 
 	if (nogl) {
 		buildputs("glswapinterval is not adjustable\n");
@@ -1694,7 +1849,7 @@ static int set_glswapinterval(const osdfuncparm_t *parm)
 		buildputs("note: OpenGL swap interval could not be changed\n");
 	} else {
 		glswapinterval = interval;
-	}
+	}*/
 	return OSDCMD_OK;
 }
 #endif

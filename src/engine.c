@@ -380,7 +380,7 @@ static inline int getclipmask(int a, int b, int c, int d)
 		: "a" (__a), "b" (__b), "c" (__c), "d" (__d) : "cc"); \
 	 __a; })
 
-#elif defined(__AMIGA__)
+#elif defined(__AMIGA__) && !defined(__vita__) && !defined(__3DS__)
 
 //
 // written by Dante/Oxyron

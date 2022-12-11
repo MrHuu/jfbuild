@@ -143,7 +143,7 @@ void __cdecl setupdrawslab(int,void *);
 void __cdecl drawslab(int,int,int,int,void *,void *);
 void __cdecl stretchhline(void *,int,int,int,void *,void *);
 
-#elif defined __AMIGA__
+#elif defined(__AMIGA__) && !defined(__vita__) && !defined(__3DS__)
 
 #include <SDI_compiler.h>
 

@@ -137,16 +137,20 @@
 # define B_LITTLE_ENDIAN 1
 # define B_BIG_ENDIAN    0
 # define B_ENDIAN_C_INLINE 1
-#elif defined(__AROS__)
+
+#elif defined _3DS
 # define B_LITTLE_ENDIAN 1
 # define B_BIG_ENDIAN    0
-# define B_ENDIAN_C_INLINE 1
-#define S_IREAD S_IRUSR
-#define S_IWRITE S_IWUSR
-#elif defined(__AMIGA__)
-# define B_LITTLE_ENDIAN 0
-# define B_BIG_ENDIAN    1
-# define B_ENDIAN_C_INLINE 1
+# define B_SWAP64(x) __bswap64(x)
+# define B_SWAP32(x) __bswap32(x)
+# define B_SWAP16(x) __bswap16(x)
+
+#elif defined VITA
+# define B_LITTLE_ENDIAN 1
+# define B_BIG_ENDIAN    0
+# define B_SWAP64(x) __bswap64(x)
+# define B_SWAP32(x) __bswap32(x)
+# define B_SWAP16(x) __bswap16(x)
 #endif
 
 #if !defined(B_LITTLE_ENDIAN) || !defined(B_BIG_ENDIAN)
